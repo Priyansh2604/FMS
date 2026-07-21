@@ -14,7 +14,7 @@ function App() {
     <div className="app">
       <header className="header">
         <h1>Finance Management</h1>
-        <p>Local frontend running at <strong>http://localhost:3000</strong></p>
+        <p>Local frontend running at</p>
       </header>
 
       <section className="dashboard">
