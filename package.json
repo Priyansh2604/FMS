@@ -1,25 +1,14 @@
 {
-  "name": "fms",
+  "name": "fms-root",
   "version": "1.0.0",
-  "description": "Finance management system backend",
-  "license": "ISC",
-  "author": "",
-  "type": "commonjs",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "start": "node backend/index.js",
-    "dev": "nodemon backend/index.js",
-    "build:frontend": "cd frontend && npm install && npm run build",
-    "start:prod": "npm run build:frontend && node backend/index.js"
-  },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.4",
-    "mongoose": "^7.6.0"
+    "dev": "concurrently \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "start": "npm --prefix backend start",
+    "build": "npm --prefix frontend run build",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install"
   },
   "devDependencies": {
-    "nodemon": "^3.0.1"
-  },
-  "keywords": ["mern", "finance", "backend"]
+    "concurrently": "^8.0.0"
+  }
 }

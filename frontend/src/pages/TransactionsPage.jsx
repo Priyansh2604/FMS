@@ -1,0 +1,323 @@
+import React, { useState } from "react";
+import { transactionLedger } from "../data/mockData";
+
+export default function TransactionsPage() {
+  const [transactions, setTransactions] = useState(transactionLedger.transactions);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("manual");
+
+  // Form states
+  const [merchantName, setMerchantName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState("");
+  const [category, setCategory] = useState("");
+  const [account, setAccount] = useState("checking");
+  const [notes, setNotes] = useState("");
+
+  const handleAddTransaction = (e) => {
+    e.preventDefault();
+    if (!merchantName || !amount || !date || !category) return;
+
+    const newTx = {
+      id: Date.now(),
+      merchant: merchantName,
+      category: category.charAt(0).toUpperCase() + category.slice(1),
+      amount: `-$${parseFloat(amount).toFixed(2)}`,
+      date: date,
+      icon: getCategoryIcon(category),
+      isExpense: true
+    };
+
+    setTransactions([newTx, ...transactions]);
+    setModalOpen(false);
+
+    // Reset fields
+    setMerchantName("");
+    setAmount("");
+    setDate("");
+    setCategory("");
+    setAccount("checking");
+    setNotes("");
+  };
+
+  const getCategoryIcon = (cat) => {
+    switch (cat) {
+      case "dining": return "restaurant";
+      case "groceries": return "shopping_cart";
+      case "shopping": return "shopping_bag";
+      case "travel": return "flight";
+      case "utilities": return "cloud";
+      default: return "receipt_long";
+    }
+  };
+
+  return (
+    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto select-none relative h-full">
+      {/* Title Header */}
+      <div className="mb-12 flex justify-between items-end flex-wrap gap-4">
+        <div>
+          <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Ledger</p>
+          <h2 className="font-display text-display text-primary tracking-tight">Transactions</h2>
+        </div>
+        <button
+          onClick={() => setModalOpen(true)}
+          className="bg-primary text-on-primary font-sans text-label-sm px-6 py-3 rounded hover:bg-primary/90 transition-colors uppercase tracking-wider shadow-sm"
+        >
+          Add Transaction
+        </button>
+      </div>
+
+      {/* Overview stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="editorial-card p-6 flex flex-col gap-2">
+          <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Inflow</span>
+          <span className="font-display text-headline-lg text-emerald-700">{transactionLedger.inflow}</span>
+        </div>
+        <div className="editorial-card p-6 flex flex-col gap-2">
+          <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Outflow</span>
+          <span className="font-display text-headline-lg text-rose-700">{transactionLedger.outflow}</span>
+        </div>
+        <div className="editorial-card p-6 flex flex-col gap-2 justify-center">
+          <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Monthly Trend</span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="material-symbols-outlined text-[24px] text-emerald-700">trending_up</span>
+            <span className="font-sans text-body-md text-emerald-700 font-semibold">{transactionLedger.trend}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Ledger Table */}
+      <div className="editorial-card overflow-x-auto">
+        <table className="w-full text-left border-collapse min-w-[700px]">
+          <thead>
+            <tr className="border-b border-outline-variant/30 bg-surface-container/30 font-sans text-label-sm text-on-surface-variant uppercase tracking-wider">
+              <th className="px-6 py-4 font-semibold">Merchant</th>
+              <th className="px-6 py-4 font-semibold">Category</th>
+              <th className="px-6 py-4 font-semibold">Date</th>
+              <th className="px-6 py-4 font-semibold text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions.map((tx) => (
+              <tr
+                key={tx.id}
+                className="border-b border-outline-variant/20 hover:bg-surface-container/30 transition-colors font-sans text-body-md text-primary"
+              >
+                <td className="px-6 py-4 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-surface-variant/80 flex items-center justify-center text-on-surface-variant shrink-0">
+                    <span className="material-symbols-outlined text-[18px]">{tx.icon}</span>
+                  </div>
+                  <span className="font-medium truncate max-w-[200px] sm:max-w-xs">{tx.merchant}</span>
+                </td>
+                <td className="px-6 py-4">
+                  <span className="bg-surface-variant/80 text-on-surface-variant px-3 py-1 rounded-full text-label-sm tracking-wide">
+                    {tx.category}
+                  </span>
+                </td>
+                <td className="px-6 py-4 text-on-surface-variant font-medium whitespace-nowrap">
+                  {tx.date}
+                </td>
+                <td className={`px-6 py-4 text-right font-display text-[20px] font-medium whitespace-nowrap ${
+                  tx.isIncome ? "text-emerald-700" : "text-primary"
+                }`}>
+                  {tx.amount}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Slide-over Modal Backdrop */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity"
+          onClick={() => setModalOpen(false)}
+        />
+      )}
+
+      {/* Slide-over Modal Content */}
+      <div
+        className={`fixed right-0 top-0 h-full w-full max-w-md bg-surface shadow-2xl z-50 transform transition-transform duration-300 border-l border-outline-variant/30 flex flex-col ${
+          modalOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {/* Modal Header */}
+        <div className="px-8 py-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface shrink-0">
+          <div>
+            <h2 className="font-sans text-headline-md text-primary">New Transaction</h2>
+            <p className="font-sans text-label-sm text-on-surface-variant mt-1">Manual entry or data sync</p>
+          </div>
+          <button
+            className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container shrink-0"
+            onClick={() => setModalOpen(false)}
+          >
+            <span className="material-symbols-outlined text-[24px]">close</span>
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="flex-1 overflow-y-auto px-8 py-8">
+          <div className="flex gap-4 mb-8 border-b border-outline-variant/30 pb-4 shrink-0">
+            <button
+              onClick={() => setActiveTab("manual")}
+              className={`font-sans text-label-sm pb-2 flex-1 text-center transition-colors font-semibold ${
+                activeTab === "manual" ? "text-primary border-b-2 border-primary" : "text-on-surface-variant hover:text-primary"
+              }`}
+            >
+              Manual Entry
+            </button>
+            <button
+              onClick={() => setActiveTab("sync")}
+              className={`font-sans text-label-sm pb-2 flex-1 text-center transition-colors font-semibold ${
+                activeTab === "sync" ? "text-primary border-b-2 border-primary" : "text-on-surface-variant hover:text-primary"
+              }`}
+            >
+              Add via Data Sync
+            </button>
+          </div>
+
+          {activeTab === "manual" ? (
+            <form onSubmit={handleAddTransaction} className="space-y-6 flex flex-col min-h-[min-content]">
+              {/* Merchant Name */}
+              <div className="space-y-2 shrink-0">
+                <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                  Merchant Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={merchantName}
+                  onChange={(e) => setMerchantName(e.target.value)}
+                  className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none"
+                  placeholder="e.g. Whole Foods Market"
+                />
+              </div>
+
+              {/* Amount & Date */}
+              <div className="flex gap-6 shrink-0 flex-wrap sm:flex-nowrap">
+                <div className="space-y-2 flex-1 min-w-[120px]">
+                  <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                    Amount
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-0 top-2 font-sans text-on-surface-variant">$</span>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full bg-transparent border-b border-outline-variant focus:border-primary pl-4 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2 flex-1 min-w-[120px]">
+                  <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                    Date
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary transition-colors outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="space-y-2 shrink-0">
+                <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                  Category
+                </label>
+                <div className="relative">
+                  <select
+                    required
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary appearance-none outline-none"
+                  >
+                    <option value="" disabled>Select category...</option>
+                    <option value="dining">Dining &amp; Drinks</option>
+                    <option value="groceries">Groceries</option>
+                    <option value="shopping">Shopping</option>
+                    <option value="travel">Travel</option>
+                    <option value="utilities">Utilities</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-0 top-2 text-on-surface-variant pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
+              </div>
+
+              {/* Account */}
+              <div className="space-y-2 shrink-0">
+                <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                  Account
+                </label>
+                <div className="relative">
+                  <select
+                    value={account}
+                    onChange={(e) => setAccount(e.target.value)}
+                    className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary appearance-none outline-none"
+                  >
+                    <option value="checking">Aura Checking (...1234)</option>
+                    <option value="savings">Aura Savings (...5678)</option>
+                    <option value="credit">Platinum Credit (...9012)</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-0 top-2 text-on-surface-variant pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="space-y-2 flex-1">
+                <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none resize-none"
+                  placeholder="Add details..."
+                  rows="2"
+                />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="pt-6 border-t border-outline-variant/30 flex gap-4 shrink-0 mt-auto">
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="flex-1 border border-outline-variant text-on-surface-variant px-6 py-3 rounded hover:bg-surface-container-low transition-colors font-sans text-label-sm uppercase tracking-widest font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 bg-primary text-on-primary px-6 py-3 rounded hover:bg-primary/90 transition-colors font-sans text-label-sm uppercase tracking-widest font-bold shadow-sm"
+                >
+                  Add
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-12 text-center select-none h-full">
+              <span className="material-symbols-outlined text-[48px] text-on-surface-variant mb-4">sync</span>
+              <p className="font-sans text-body-lg text-primary font-medium">Connect bank statement sync</p>
+              <p className="font-sans text-body-md text-on-surface-variant mt-2 max-w-[240px]">
+                Link checking, savings, or investment accounts directly.
+              </p>
+              <button className="mt-8 bg-primary text-on-primary px-6 py-3 rounded font-sans text-label-sm uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-colors">
+                Setup Plaid Sync
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}

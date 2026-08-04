@@ -1,53 +1,24 @@
-import { useEffect, useState } from 'react';
+import React from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout";
+import DashboardPage from "./pages/DashboardPage";
+import TransactionsPage from "./pages/TransactionsPage";
+import AIAdvisorPage from "./pages/AIAdvisorPage";
+import ReportsPage from "./pages/ReportsPage";
+import SettingsPage from "./pages/SettingsPage";
 
-function App() {
-  const [transactions, setTransactions] = useState([]);
-
-  useEffect(() => {
-    fetch('/api/transactions')
-      .then((res) => res.json())
-      .then((data) => setTransactions(data))
-      .catch(() => setTransactions([]));
-  }, []);
-
+export default function App() {
   return (
-    <div className="app">
-      <header className="header">
-        <h1>Finance Management</h1>
-        <p>Local frontend running at</p>
-      </header>
-
-      <section className="dashboard">
-        <div className="card">
-          <h2>Transactions</h2>
-          {transactions.length === 0 ? (
-            <p>No transactions yet.</p>
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th>Category</th>
-                  <th>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx._id}>
-                    <td>{new Date(tx.date).toLocaleDateString()}</td>
-                    <td>{tx.type}</td>
-                    <td>{tx.category}</td>
-                    <td>${tx.amount.toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </section>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<AppLayout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="advisor" element={<AIAdvisorPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
-
-export default App;
