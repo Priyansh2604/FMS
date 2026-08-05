@@ -68,12 +68,8 @@ export default function ChatMessage({ sender, text, hasCards, cards, followUpTex
               {followUpText}
             </div>
             <div className="mt-4 flex flex-wrap gap-3">
-              <button className="bg-primary text-white font-sans text-label-sm px-5 py-2.5 rounded-full hover:bg-black/80 transition-colors shadow-md font-semibold active:scale-95 duration-150">
-                Yes, cancel inactive
-              </button>
-              <button className="bg-white border border-outline-variant text-primary font-sans text-label-sm px-5 py-2.5 rounded-full hover:bg-surface-container-low transition-colors shadow-sm font-semibold active:scale-95 duration-150">
-                View details first
-              </button>
+              <button className="btn btn-primary btn-sm">Yes, cancel inactive</button>
+              <button className="btn btn-outline btn-sm">View details first</button>
             </div>
           </div>
         )}

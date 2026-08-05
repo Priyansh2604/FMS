@@ -6,7 +6,7 @@ export default function BudgetRing({ category, spent, total, percentage, strokeO
       <div className="relative w-24 h-24 select-none">
         <svg className="w-full h-full" viewBox="0 0 100 100">
           <circle
-            className="text-surface-variant dark:text-surface-container stroke-current"
+            className="text-surface-variant stroke-current"
             cx="50"
             cy="50"
             fill="transparent"

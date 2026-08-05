@@ -7,7 +7,7 @@ export default function Header({ onMenuToggle }) {
       <div className="flex items-center gap-4 flex-1 min-w-0">
         <button
           onClick={onMenuToggle}
-          className="lg:hidden text-on-surface-variant hover:text-primary transition-colors p-1"
+          className="btn btn-icon btn-ghost lg:hidden !h-9 !w-9"
         >
           <span className="material-symbols-outlined text-2xl">menu</span>
         </button>
@@ -28,18 +28,18 @@ export default function Header({ onMenuToggle }) {
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 lg:gap-4">
-        <button className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-high/50">
+      <div className="flex items-center gap-1 lg:gap-2">
+        <button className="btn btn-icon btn-ghost">
           <span className="material-symbols-outlined text-[22px]">calendar_month</span>
         </button>
-        <button className="text-on-surface-variant hover:text-primary transition-colors relative p-2 rounded-full hover:bg-surface-container-high/50">
+        <button className="btn btn-icon btn-ghost relative">
           <span className="material-symbols-outlined text-[22px]">notifications</span>
           <span className="absolute top-2 right-2 w-2 h-2 bg-error rounded-full"></span>
         </button>
-        <button className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container-high/50">
+        <button className="btn btn-icon btn-ghost">
           <span className="material-symbols-outlined text-[22px]">dark_mode</span>
         </button>
-        <button className="bg-primary text-on-primary text-xs font-semibold px-5 py-2 rounded-full hover:opacity-90 transition-opacity hidden sm:inline-block shadow-sm">
+        <button className="btn btn-primary btn-sm hidden sm:inline-flex">
           Upgrade to Pro
         </button>
       </div>

@@ -52,7 +52,7 @@ export default function TransactionsPage() {
   };
 
   return (
-    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto select-none relative h-full">
+    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto">
       {/* Title Header */}
       <div className="mb-12 flex justify-between items-end flex-wrap gap-4">
         <div>
@@ -61,7 +61,7 @@ export default function TransactionsPage() {
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="bg-primary text-on-primary font-sans text-label-sm px-6 py-3 rounded hover:bg-primary/90 transition-colors uppercase tracking-wider shadow-sm"
+          className="btn btn-primary"
         >
           Add Transaction
         </button>
@@ -149,7 +149,7 @@ export default function TransactionsPage() {
             <p className="font-sans text-label-sm text-on-surface-variant mt-1">Manual entry or data sync</p>
           </div>
           <button
-            className="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-container shrink-0"
+            className="btn btn-icon btn-ghost shrink-0"
             onClick={() => setModalOpen(false)}
           >
             <span className="material-symbols-outlined text-[24px]">close</span>
@@ -292,13 +292,13 @@ export default function TransactionsPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="flex-1 border border-outline-variant text-on-surface-variant px-6 py-3 rounded hover:bg-surface-container-low transition-colors font-sans text-label-sm uppercase tracking-widest font-bold"
+                  className="btn btn-outline flex-1"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 bg-primary text-on-primary px-6 py-3 rounded hover:bg-primary/90 transition-colors font-sans text-label-sm uppercase tracking-widest font-bold shadow-sm"
+                  className="btn btn-primary flex-1"
                 >
                   Add
                 </button>
@@ -311,9 +311,7 @@ export default function TransactionsPage() {
               <p className="font-sans text-body-md text-on-surface-variant mt-2 max-w-[240px]">
                 Link checking, savings, or investment accounts directly.
               </p>
-              <button className="mt-8 bg-primary text-on-primary px-6 py-3 rounded font-sans text-label-sm uppercase tracking-wider font-bold shadow-sm hover:bg-primary/90 transition-colors">
-                Setup Plaid Sync
-              </button>
+              <button className="mt-8 btn btn-primary">Setup Plaid Sync</button>
             </div>
           )}
         </div>

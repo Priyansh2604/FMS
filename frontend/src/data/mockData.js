@@ -1,7 +1,7 @@
 export const userProfile = {
   name: "Julian Vane",
   tier: "Premium Member",
-  avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuCsfabcq-bealQ9y_ItAEaNppRSRggBW8ap34miT6RIWTXta-SeNPieZZ6wWFIGuTGB0iE9ONMY1ruel9_XLunlCGGNxTG52a6d-O8zsQtfA6jo0xeNkp1RXN7BruV0PFHIByhsozWIHhxrAGbOmS0b1K_rjDIcE2K0vRlFp57LjoiFKbXI2p5eKhr78xKiqPqp4-KHFk8YGNZd2EzqpHLb1rNH4RKR8vjSoQQ7B8GEUCNK8W8R8a1PNg"
+  avatar: "https://i.pravatar.cc/160?img=12"
 };
 
 export const dashboardOverview = {
@@ -86,7 +86,7 @@ export const creditLocation = {
   score: 815,
   scoreLabel: "Equifax Score",
   location: "New York",
-  mapUrl: "https://lh3.googleusercontent.com/aida-public/AB6AXuCCc92OnvIY5VKQ7T50lHl1NTLbLldAgm6fGJsJEAyMVeZ5dTqCULEcG1bVcvOPk84lRy8zsBBkzDEBdq6eU2pvsc1Kf954yr-LohqYgp0lNYuLgaG6oX_RCy_KZFWer07uwOLJCmCKjqFmzblKXqqrP6mMwhaJ5Dy_Ul0gDygds_TCYXS7NPcem9kLllAk0ubfmA-OjKIvzhjOdTSTDT26qWE5Gv3A1zwrJuI4XeXTDIGN--hUeltDyw"
+  mapUrl: "https://picsum.photos/seed/aura-map/800/400"
 };
 
 export const upcomingBills = [
@@ -115,7 +115,7 @@ export const portfolioCategories = [
     percentage: "34.2%",
     trend: "+8.4% YTD",
     icon: "domain",
-    bgImage: "https://lh3.googleusercontent.com/aida-public/AB6AXuCpvvUbpjleEMA2dPznm1Up_6VTtpeWu1V5lH5X1iySUyVcSO-SV0Vr1Yq1yXj-TZiHgvGc-3HrFMHKXPg8HNDa8u6lkU_AvSkUr_YDPV1An-6r9RWq6-FB_W6dALoX0f0MtrMHIbQE5kTiYlOxBz7MaDtTYCz-p7aqpAsTF8wQM3P5zDPso1zxoekH4eVGIt_54Cuxl_5oWFaugtf3mPfaBp_kuVMRtDOuyVLhenrZSiLkOWzSEsFzEQ",
+    bgImage: "https://picsum.photos/seed/aura-property/800/600",
     isLarge: true
   },
   {

@@ -2,7 +2,7 @@ import React from "react";
 
 export default function StatCard({ label, value, trend, isBordered = false, showTrendUp = false }) {
   return (
-    <div className={`flex flex-col gap-2 ${isBordered ? "border-l border-outline-variant/40 pl-8" : ""}`}>
+    <div className={`flex flex-col gap-2 ${isBordered ? "sm:border-l sm:border-outline-variant/40 sm:pl-8" : ""}`}>
       <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest font-semibold">
         {label}
       </span>

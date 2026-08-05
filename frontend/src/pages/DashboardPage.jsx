@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="px-6 lg:px-16 py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-[1440px] w-full mx-auto select-none">
+    <div className="px-6 lg:px-16 py-8 lg:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start max-w-[1440px] w-full mx-auto">
       {/* Left major column */}
       <div className="lg:col-span-8 flex flex-col gap-12 min-w-0">
         {/* Header section */}
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           <h2 className="font-display text-headline-lg text-primary border-b border-outline-variant/30 pb-4">
             Spending Timeline
           </h2>
-          <div className="flex gap-8 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-outline-variant snap-x">
+          <div className="flex gap-8 overflow-x-auto pb-4 snap-x">
             {spendingTimeline.map((item) => (
               <div
                 key={item.date}
@@ -175,7 +175,7 @@ export default function DashboardPage() {
               </li>
             ))}
           </ul>
-          <button className="text-left font-sans text-label-md text-on-surface-variant hover:text-primary transition-colors mt-2 flex items-center gap-1 w-max">
+          <button className="btn btn-ghost btn-sm justify-start !px-0 mt-2">
             View all scheduled <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
           </button>
         </div>

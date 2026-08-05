@@ -6,7 +6,7 @@ export default function SettingsPage() {
   const [currency, setCurrency] = useState("INR");
 
   return (
-    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[800px] w-full mx-auto select-none">
+    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[800px] w-full mx-auto">
       <div className="mb-12">
         <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Preferences</p>
         <h2 className="font-display text-display text-primary tracking-tight">Settings</h2>
@@ -19,7 +19,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-6 flex-wrap border-b border-outline-variant/20 pb-8">
             <div className="w-20 h-20 rounded-full bg-primary overflow-hidden shadow-sm shrink-0">
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsfabcq-bealQ9y_ItAEaNppRSRggBW8ap34miT6RIWTXta-SeNPieZZ6wWFIGuTGB0iE9ONMY1ruel9_XLunlCGGNxTG52a6d-O8zsQtfA6jo0xeNkp1RXN7BruV0PFHIByhsozWIHhxrAGbOmS0b1K_rjDIcE2K0vRlFp57LjoiFKbXI2p5eKhr78xKiqPqp4-KHFk8YGNZd2EzqpHLb1rNH4RKR8vjSoQQ7B8GEUCNK8W8R8a1PNg"
+                src="https://i.pravatar.cc/160?img=12"
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
@@ -28,7 +28,7 @@ export default function SettingsPage() {
               <p className="font-sans text-headline-md text-primary font-bold">Julian Vane</p>
               <p className="font-sans text-body-md text-on-surface-variant mt-1">Premium Member since Q1 2024</p>
             </div>
-            <button className="sm:ml-auto bg-primary text-on-primary px-6 py-2.5 rounded font-sans text-label-sm font-semibold uppercase tracking-wider hover:bg-primary/90 shadow-sm transition-colors mt-2 sm:mt-0">
+            <button className="btn btn-primary btn-sm sm:ml-auto mt-2 sm:mt-0">
               Change Image
             </button>
           </div>
@@ -84,15 +84,15 @@ export default function SettingsPage() {
         </div>
 
         {/* Upgrade Plan Widget */}
-        <div className="editorial-card p-6 lg:p-8 bg-tertiary-fixed/10 border-tertiary-fixed/30 flex justify-between items-center relative overflow-hidden">
+        <div className="editorial-card p-6 lg:p-8 bg-tertiary-fixed/10 border-tertiary-fixed/30 flex flex-col sm:flex-row sm:items-center gap-6 relative overflow-hidden">
           <div className="absolute right-0 top-0 w-64 h-64 bg-tertiary-fixed/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          <div className="z-10 max-w-[60%]">
+          <div className="z-10 flex-1 min-w-0">
             <h3 className="font-sans text-headline-sm text-primary">Security Settings</h3>
             <p className="font-sans text-body-md text-on-surface-variant mt-2">
               Configure multi-factor authentication and token security sessions.
             </p>
           </div>
-          <button className="z-10 bg-surface-container-lowest border border-outline-variant hover:border-primary/50 text-primary font-sans text-label-sm px-6 py-3 rounded-full hover:bg-surface-container-low transition-colors shadow-sm font-bold uppercase tracking-wider">
+          <button className="z-10 btn btn-outline shrink-0">
             Manage
           </button>
         </div>

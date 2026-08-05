@@ -56,13 +56,13 @@ export default function AIAdvisorPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 lg:p-8 items-center bg-background/50 select-none h-full relative">
+    <div className="flex-1 flex flex-col p-4 lg:p-8 items-center bg-background/50 h-full relative">
       {/* Background decorations */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-secondary-container-accent/20 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-64 h-64 bg-tertiary-fixed/20 rounded-full blur-[80px] pointer-events-none translate-y-1/2 -translate-x-1/3" />
       
       {/* Glass Chat Container */}
-      <div className="w-full max-w-4xl flex-1 max-h-full bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.06)] border border-white flex flex-col overflow-hidden relative z-10">
+      <div className="w-full max-w-4xl flex-1 max-h-full bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.06)] border border-outline-variant/20 flex flex-col overflow-hidden relative z-10">
         
         {/* Chat Header */}
         <div className="px-6 md:px-8 py-5 border-b border-surface-container flex justify-between items-center bg-white/50 shrink-0">
@@ -81,10 +81,10 @@ export default function AIAdvisorPage() {
             </div>
           </div>
           <div className="flex gap-2">
-            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low shrink-0">
+            <button className="btn btn-icon btn-ghost shrink-0">
               <span className="material-symbols-outlined text-[20px]">download</span>
             </button>
-            <button className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-full hover:bg-surface-container-low shrink-0">
+            <button className="btn btn-icon btn-ghost shrink-0">
               <span className="material-symbols-outlined text-[20px]">more_vert</span>
             </button>
           </div>
@@ -93,7 +93,7 @@ export default function AIAdvisorPage() {
         {/* Chat Scroll Area */}
         <div
           ref={chatScrollRef}
-          className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6 scrollbar-thin scrollbar-thumb-outline-variant"
+          className="flex-1 overflow-y-auto p-6 md:p-8 flex flex-col gap-6"
         >
           {/* System Date Welcome */}
           <div className="flex justify-center my-4">
@@ -116,7 +116,7 @@ export default function AIAdvisorPage() {
 
           {/* Typing Indicator */}
           {isTyping && (
-            <div className="flex w-full gap-4 opacity-75 select-none animate-in fade-in duration-300">
+            <div className="flex w-full gap-4 opacity-75 animate-fade-in">
               <div className="w-8 h-8 rounded-full bg-surface-container flex-shrink-0 flex items-center justify-center text-on-surface-variant mt-1">
                 <span className="material-symbols-outlined text-[18px]">psychology</span>
               </div>
@@ -137,7 +137,7 @@ export default function AIAdvisorPage() {
               <button
                 key={prompt}
                 onClick={() => handleSend(prompt)}
-                className="whitespace-nowrap px-4 py-2 bg-surface-container-low border border-surface-container hover:border-primary/30 rounded-full font-sans text-label-sm text-on-surface-variant hover:text-primary transition-colors"
+                className="btn btn-outline btn-sm rounded-full shrink-0"
               >
                 {prompt}
               </button>
@@ -146,7 +146,7 @@ export default function AIAdvisorPage() {
 
           {/* Input field */}
           <div className="relative flex items-end gap-2 bg-surface-container-low rounded-2xl p-2 border border-outline-variant/40 focus-within:border-primary/50 focus-within:ring-1 focus-within:ring-primary/10 transition-all shadow-sm">
-            <button className="p-3 text-on-surface-variant hover:text-primary rounded-xl shrink-0 transition-colors">
+            <button className="btn btn-icon btn-ghost !rounded-xl shrink-0">
               <span className="material-symbols-outlined text-[20px]">add_circle</span>
             </button>
             <textarea
@@ -160,7 +160,7 @@ export default function AIAdvisorPage() {
             <button
               onClick={() => handleSend()}
               disabled={!inputValue.trim()}
-              className="p-3 bg-primary text-white rounded-xl shrink-0 shadow-md hover:bg-primary/90 transition-transform active:scale-95 duration-150 disabled:opacity-50 disabled:active:scale-100"
+              className="btn btn-icon btn-primary !rounded-xl shrink-0"
             >
               <span className="material-symbols-outlined text-[20px]">arrow_upward</span>
             </button>

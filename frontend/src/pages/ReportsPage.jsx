@@ -6,7 +6,7 @@ import { portfolioCategories } from "../data/mockData";
 
 export default function ReportsPage() {
   return (
-    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto pb-24 select-none">
+    <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto pb-24">
       {/* Page Header */}
       <div className="mb-12 mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
         <div>
@@ -14,9 +14,7 @@ export default function ReportsPage() {
           <h2 className="font-display text-display text-primary tracking-tight">Portfolio Analysis</h2>
         </div>
         <div>
-          <button className="px-6 py-2.5 border border-outline-variant hover:bg-surface-container-low transition-colors rounded font-sans text-label-sm font-semibold uppercase tracking-wider shadow-sm text-primary">
-            Export PDF
-          </button>
+          <button className="btn btn-outline">Export PDF</button>
         </div>
       </div>
 

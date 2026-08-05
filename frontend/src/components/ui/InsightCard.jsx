@@ -12,13 +12,13 @@ export default function InsightCard({ title, description, ctaLabel, onCtaClick }
       </div>
       
       <div className="flex flex-col gap-2 z-10 flex-1 min-w-0">
-        <h3 className="font-display text-headline-sm text-primary font-semibold truncate md:normal-case">{title}</h3>
+        <h3 className="font-display text-headline-sm text-primary font-semibold">{title}</h3>
         <p className="font-sans text-body-md text-on-surface-variant max-w-lg leading-relaxed">{description}</p>
       </div>
-      
+
       <button
         onClick={onCtaClick}
-        className="z-10 bg-surface text-primary border border-outline-variant hover:border-primary/50 font-sans text-label-md px-6 py-3 rounded-full hover:bg-surface-container transition-all shadow-sm whitespace-nowrap active:scale-95 duration-150"
+        className="btn btn-outline shrink-0"
       >
         {ctaLabel}
       </button>

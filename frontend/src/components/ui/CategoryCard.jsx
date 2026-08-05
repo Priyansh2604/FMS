@@ -134,7 +134,7 @@ export default function CategoryCard({
         {/* Mutual fund specific CTA */}
         {isDark && (
           <div className="flex justify-end mt-4">
-            <button className="bg-secondary-container text-on-secondary-container px-6 py-2.5 rounded font-sans text-label-sm uppercase tracking-wider font-semibold hover:bg-secondary-container-accent hover:text-on-secondary-container-accent transition-colors active:scale-95 duration-150">
+            <button className="btn btn-sm bg-secondary-container text-on-secondary-container hover:bg-secondary-container-accent hover:text-on-secondary-container-accent">
               View Holdings
             </button>
           </div>

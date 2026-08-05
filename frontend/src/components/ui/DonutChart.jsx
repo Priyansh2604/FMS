@@ -22,7 +22,7 @@ export default function DonutChart() {
       <div className="flex flex-col items-center gap-8 py-4">
         {/* Conic donut wrapper */}
         <div
-          className="relative w-48 h-48 rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-102 duration-300"
+          className="relative w-48 h-48 rounded-full shadow-md flex items-center justify-center transition-transform hover:scale-[1.02] duration-300"
           style={gradientStyle}
         >
           {/* Inner cutout for donut shape */}

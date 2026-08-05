@@ -64,21 +64,13 @@ export default function Sidebar({ onCloseMobile }) {
 
       {/* Footer controls */}
       <div className="pt-6 border-t border-outline-variant/30 flex flex-col gap-4">
-        <button className="w-full bg-primary text-on-primary font-sans text-label-sm uppercase tracking-wider py-3 rounded-lg hover:opacity-90 transition-opacity font-semibold shadow-sm">
-          Upgrade to Pro
-        </button>
+        <button className="btn btn-primary btn-block">Upgrade to Pro</button>
         <div className="flex flex-col gap-1">
-          <a
-            href="#"
-            className="flex items-center gap-4 text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors rounded-lg font-sans text-label-md"
-          >
+          <a href="#" className="btn btn-ghost btn-sm justify-start">
             <span className="material-symbols-outlined text-[20px]">help_outline</span>
             <span>Help Center</span>
           </a>
-          <a
-            href="#"
-            className="flex items-center gap-4 text-on-surface-variant px-4 py-2 hover:bg-surface-container-high transition-colors rounded-lg font-sans text-label-md"
-          >
+          <a href="#" className="btn btn-ghost btn-sm justify-start">
             <span className="material-symbols-outlined text-[20px]">logout</span>
             <span>Sign Out</span>
           </a>
