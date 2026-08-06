@@ -1,10 +1,18 @@
-import React, { useState } from "react";
-import { Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import Header from "./Header";
 
 export default function AppLayout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const location = useLocation();
+
+  useEffect(() => {
+    setIsLoading(true);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [location.pathname]);
 
   return (
     <div className="h-full flex bg-background text-on-background antialiased">
@@ -28,8 +36,11 @@ export default function AppLayout() {
       {/* Main content area — offset by sidebar width on desktop */}
       <div className="flex-1 flex flex-col h-full lg:ml-64 min-w-0">
         <Header onMenuToggle={() => setMobileSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <Outlet />
+        <main className="flex-1 overflow-y-auto overflow-x-hidden relative">
+          <div className={`page-loader ${isLoading ? "page-loader--active" : ""}`} />
+          <div key={location.pathname} className="page-transition">
+            <Outlet />
+          </div>
         </main>
       </div>
     </div>

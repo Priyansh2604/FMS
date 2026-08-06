@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import ChatMessage from "../components/ui/ChatMessage";
+import Strands from "../components/ui/Strands";
 import { chatMessages } from "../data/mockData";
 
 export default function AIAdvisorPage() {
@@ -56,18 +57,38 @@ export default function AIAdvisorPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col p-4 lg:p-8 items-center bg-background/50 h-full relative">
-      {/* Background decorations */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-secondary-container-accent/20 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/2" />
-      <div className="absolute bottom-0 left-0 w-64 h-64 bg-tertiary-fixed/20 rounded-full blur-[80px] pointer-events-none translate-y-1/2 -translate-x-1/3" />
-      
+    <div className="flex-1 flex flex-col p-4 lg:p-8 items-center bg-background/50 h-full relative overflow-hidden">
+      {/* Strands animated background */}
+      <div className="absolute inset-0 z-0">
+        <Strands
+          colors={["#4482e5", "#43e81e", "#e51035"]}
+          count={8}
+          speed={0.5}
+          amplitude={1}
+          waviness={1.7}
+          thickness={0.7}
+          glow={2.6}
+          taper={3.1}
+          spread={1}
+          intensity={0.55}
+          saturation={2}
+          opacity={1}
+          scale={1.7}
+          glass={false}
+          refraction={1}
+          dispersion={1}
+          glassSize={1}
+          hueShift={0.29}
+        />
+      </div>
+
       {/* Glass Chat Container */}
-      <div className="w-full max-w-4xl flex-1 max-h-full bg-white/80 backdrop-blur-2xl rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.06)] border border-outline-variant/20 flex flex-col overflow-hidden relative z-10">
+      <div className="w-full max-w-5xl flex-1 max-h-full bg-white/20 dark:bg-white/5 backdrop-blur-xl rounded-2xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] border border-white/40 dark:border-white/10 flex flex-col overflow-hidden relative z-10">
         
         {/* Chat Header */}
-        <div className="px-6 md:px-8 py-5 border-b border-surface-container flex justify-between items-center bg-white/50 shrink-0">
+        <div className="px-6 md:px-8 py-5 border-b border-surface-container flex justify-between items-center bg-white/30 dark:bg-white/5 backdrop-blur-lg shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center text-white shadow-md shrink-0">
+            <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md shrink-0">
               <span className="material-symbols-outlined font-bold text-[22px]">psychology</span>
             </div>
             <div>
@@ -130,7 +151,7 @@ export default function AIAdvisorPage() {
         </div>
 
         {/* Input Area */}
-        <div className="p-4 md:p-6 bg-white/90 backdrop-blur-md border-t border-surface-container shrink-0">
+        <div className="p-4 md:p-6 bg-white/40 dark:bg-white/5 backdrop-blur-lg border-t border-surface-container shrink-0">
           {/* Suggested prompts */}
           <div className="flex gap-2 overflow-x-auto pb-4 scrollbar-none scroll-smooth">
             {suggestedPrompts.map((prompt) => (

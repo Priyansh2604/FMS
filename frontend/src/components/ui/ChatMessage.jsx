@@ -18,7 +18,7 @@ export default function ChatMessage({ sender, text, hasCards, cards, followUpTex
   return (
     <div className="flex w-full gap-4">
       {/* AI Avatar */}
-      <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-white mt-1 shadow-sm">
+      <div className="w-8 h-8 rounded-full bg-primary flex-shrink-0 flex items-center justify-center text-on-primary mt-1 shadow-sm">
         <span className="material-symbols-outlined text-[18px]">psychology</span>
       </div>
 
@@ -34,7 +34,7 @@ export default function ChatMessage({ sender, text, hasCards, cards, followUpTex
             {cards.map((card) => (
               <div
                 key={card.id}
-                className="bg-white p-5 rounded-xl border border-surface-container shadow-[0_4px_12px_rgba(0,0,0,0.02)] select-none"
+                className="bg-surface-container-lowest p-5 rounded-xl border border-outline-variant/30 shadow-[0_4px_12px_rgba(0,0,0,0.02)] select-none"
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center gap-2 text-primary font-sans text-label-sm font-bold tracking-wider">

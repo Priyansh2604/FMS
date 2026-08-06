@@ -1,10 +1,21 @@
 import React, { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { transactionLedger } from "../data/mockData";
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState(transactionLedger.transactions);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("manual");
+  const [searchParams] = useSearchParams();
+  const searchQuery = searchParams.get("q") || "";
+
+  const filteredTransactions = searchQuery
+    ? transactions.filter((tx) =>
+        [tx.merchant, tx.category].some((field) =>
+          field.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      )
+    : transactions;
 
   // Form states
   const [merchantName, setMerchantName] = useState("");
@@ -58,6 +69,12 @@ export default function TransactionsPage() {
         <div>
           <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Ledger</p>
           <h2 className="font-display text-display text-primary tracking-tight">Transactions</h2>
+          {searchQuery && (
+            <p className="font-sans text-label-md text-on-surface-variant mt-2">
+              {filteredTransactions.length} result{filteredTransactions.length === 1 ? "" : "s"} for{" "}
+              <span className="text-primary font-semibold">"{searchQuery}"</span>
+            </p>
+          )}
         </div>
         <button
           onClick={() => setModalOpen(true)}
@@ -98,7 +115,7 @@ export default function TransactionsPage() {
             </tr>
           </thead>
           <tbody>
-            {transactions.map((tx) => (
+            {filteredTransactions.map((tx) => (
               <tr
                 key={tx.id}
                 className="border-b border-outline-variant/20 hover:bg-surface-container/30 transition-colors font-sans text-body-md text-primary"
@@ -124,6 +141,16 @@ export default function TransactionsPage() {
                 </td>
               </tr>
             ))}
+            {filteredTransactions.length === 0 && (
+              <tr>
+                <td colSpan={4} className="px-6 py-12 text-center">
+                  <span className="material-symbols-outlined text-[40px] text-outline block mb-3">search_off</span>
+                  <p className="font-sans text-body-md text-on-surface-variant">
+                    No transactions found for "{searchQuery}".
+                  </p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

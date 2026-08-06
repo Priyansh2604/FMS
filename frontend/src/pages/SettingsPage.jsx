@@ -1,9 +1,11 @@
 import React, { useState } from "react";
+import { getCurrentUser } from "../auth";
 
 export default function SettingsPage() {
+  const user = getCurrentUser();
   const [darkTheme, setDarkTheme] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [currency, setCurrency] = useState("INR");
+  const [currency, setCurrency] = useState(user?.currency || "INR");
 
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[800px] w-full mx-auto">
@@ -19,14 +21,16 @@ export default function SettingsPage() {
           <div className="flex items-center gap-6 flex-wrap border-b border-outline-variant/20 pb-8">
             <div className="w-20 h-20 rounded-full bg-primary overflow-hidden shadow-sm shrink-0">
               <img
-                src="https://i.pravatar.cc/160?img=12"
+                src={user?.avatar || "https://i.pravatar.cc/160?img=12"}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
-              <p className="font-sans text-headline-md text-primary font-bold">Julian Vane</p>
-              <p className="font-sans text-body-md text-on-surface-variant mt-1">Premium Member since Q1 2024</p>
+              <p className="font-sans text-headline-md text-primary font-bold">{user?.name || "Julian Vane"}</p>
+              <p className="font-sans text-body-md text-on-surface-variant mt-1">
+                {user?.tier || "Premium Member"} · {user?.email || "julian@aura.finance"}
+              </p>
             </div>
             <button className="btn btn-primary btn-sm sm:ml-auto mt-2 sm:mt-0">
               Change Image

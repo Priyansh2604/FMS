@@ -1,13 +1,22 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { userProfile } from "../../data/mockData";
+import { getCurrentUser, signOut } from "../../auth";
 
 export default function Sidebar({ onCloseMobile }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const user = getCurrentUser() || userProfile;
+
+  const handleSignOut = () => {
+    signOut();
+    navigate("/login");
+  };
 
   const navigation = [
     { name: "Dashboard", path: "/", icon: "dashboard" },
     { name: "Transactions", path: "/transactions", icon: "receipt_long" },
+    { name: "Investments", path: "/invest", icon: "candlestick_chart" },
     { name: "AI Advisor", path: "/advisor", icon: "smart_toy" },
     { name: "Reports", path: "/reports", icon: "analytics" },
     { name: "Settings", path: "/settings", icon: "settings" },
@@ -27,13 +36,13 @@ export default function Sidebar({ onCloseMobile }) {
         {/* User profile */}
         <div className="flex items-center gap-3 bg-surface-container/40 p-3 rounded-xl mb-6 border border-outline-variant/10">
           <img
-            src={userProfile.avatar}
-            alt={userProfile.name}
+            src={user.avatar}
+            alt={user.name}
             className="w-10 h-10 rounded-full object-cover border border-outline-variant/30 shrink-0"
           />
           <div className="flex flex-col min-w-0">
-            <span className="font-sans text-label-md text-primary truncate">{userProfile.name}</span>
-            <span className="font-sans text-label-sm text-on-surface-variant truncate">{userProfile.tier}</span>
+            <span className="font-sans text-label-md text-primary truncate">{user.name}</span>
+            <span className="font-sans text-label-sm text-on-surface-variant truncate">{user.tier}</span>
           </div>
         </div>
 
@@ -70,10 +79,10 @@ export default function Sidebar({ onCloseMobile }) {
             <span className="material-symbols-outlined text-[20px]">help_outline</span>
             <span>Help Center</span>
           </a>
-          <a href="#" className="btn btn-ghost btn-sm justify-start">
+          <button onClick={handleSignOut} className="btn btn-ghost btn-sm justify-start">
             <span className="material-symbols-outlined text-[20px]">logout</span>
             <span>Sign Out</span>
-          </a>
+          </button>
         </div>
       </div>
     </div>
