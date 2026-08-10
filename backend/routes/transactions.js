@@ -53,4 +53,22 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.delete('/:id', async (req, res) => {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return res.json({ success: true, deletedId: req.params.id });
+    }
+
+    const deletedTransaction = await Transaction.findByIdAndDelete(req.params.id);
+
+    if (!deletedTransaction) {
+      return res.status(404).json({ error: 'Transaction not found' });
+    }
+
+    res.json({ success: true, deletedId: req.params.id });
+  } catch (error) {
+    res.status(400).json({ error: 'Failed to delete transaction', details: error.message });
+  }
+});
+
 module.exports = router;

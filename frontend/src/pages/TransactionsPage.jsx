@@ -8,6 +8,7 @@ export default function TransactionsPage() {
   const [activeTab, setActiveTab] = useState("manual");
   const [searchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   const filteredTransactions = searchQuery
     ? transactions.filter((tx) =>
@@ -25,6 +26,8 @@ export default function TransactionsPage() {
   const [account, setAccount] = useState("checking");
   const [notes, setNotes] = useState("");
 
+  const getTransactionId = (tx) => tx._id || tx.id;
+
   const handleAddTransaction = (e) => {
     e.preventDefault();
     if (!merchantName || !amount || !date || !category) return;
@@ -39,7 +42,7 @@ export default function TransactionsPage() {
       isExpense: true
     };
 
-    setTransactions([newTx, ...transactions]);
+    setTransactions((currentTransactions) => [newTx, ...currentTransactions]);
     setModalOpen(false);
 
     // Reset fields
@@ -49,6 +52,20 @@ export default function TransactionsPage() {
     setCategory("");
     setAccount("checking");
     setNotes("");
+  };
+
+  const handleDeleteTransaction = async (transactionId) => {
+    setTransactions((currentTransactions) =>
+      currentTransactions.filter((tx) => getTransactionId(tx) !== transactionId)
+    );
+
+    try {
+      await fetch(`${apiBaseUrl}/api/transactions/${transactionId}`, {
+        method: "DELETE"
+      });
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+    }
   };
 
   const getCategoryIcon = (cat) => {
@@ -112,6 +129,7 @@ export default function TransactionsPage() {
               <th className="px-6 py-4 font-semibold">Category</th>
               <th className="px-6 py-4 font-semibold">Date</th>
               <th className="px-6 py-4 font-semibold text-right">Amount</th>
+              <th className="px-6 py-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -138,6 +156,16 @@ export default function TransactionsPage() {
                   tx.isIncome ? "text-emerald-700" : "text-primary"
                 }`}>
                   {tx.amount}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteTransaction(getTransactionId(tx))}
+                    className="inline-flex items-center justify-center rounded-full p-2 text-rose-700 transition-colors hover:bg-rose-100 hover:text-rose-900"
+                    aria-label={`Delete ${tx.merchant}`}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">delete</span>
+                  </button>
                 </td>
               </tr>
             ))}
