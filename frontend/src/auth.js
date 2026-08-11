@@ -90,6 +90,30 @@ export function getCurrentUser() {
   }
 }
 
+export function updateCurrentUserAvatar(avatar) {
+  const currentUser = getCurrentUser();
+  if (!currentUser) return null;
+
+  const updatedUser = {
+    ...currentUser,
+    avatar
+  };
+
+  localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
+
+  const users = readUsers();
+  const index = users.findIndex(
+    (u) => u.email.toLowerCase() === (currentUser.email || "").toLowerCase()
+  );
+
+  if (index >= 0) {
+    users[index] = { ...users[index], avatar };
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
+
+  return updatedUser;
+}
+
 export function signOut() {
   localStorage.removeItem(SESSION_KEY);
 }

@@ -1,11 +1,43 @@
-import React, { useState } from "react";
-import { getCurrentUser } from "../auth";
+import React, { useRef, useState } from "react";
+import { getCurrentUser, updateCurrentUserAvatar } from "../auth";
+
+const DEFAULT_AVATAR = "https://i.pravatar.cc/160?img=12";
 
 export default function SettingsPage() {
-  const user = getCurrentUser();
+  const currentUser = getCurrentUser();
+  const [user, setUser] = useState(currentUser);
   const [darkTheme, setDarkTheme] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currency, setCurrency] = useState(user?.currency || "INR");
+  const [avatar, setAvatar] = useState(user?.avatar || DEFAULT_AVATAR);
+  const fileInputRef = useRef(null);
+
+  const handleAvatarChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please choose an image file.");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const newAvatar = reader.result;
+      const updatedUser = updateCurrentUserAvatar(newAvatar);
+
+      if (updatedUser) {
+        setUser(updatedUser);
+        setAvatar(updatedUser.avatar || DEFAULT_AVATAR);
+      }
+    };
+    reader.onerror = () => {
+      alert("Unable to read the selected image.");
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
+  };
 
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[800px] w-full mx-auto">
@@ -21,7 +53,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-6 flex-wrap border-b border-outline-variant/20 pb-8">
             <div className="w-20 h-20 rounded-full bg-primary overflow-hidden shadow-sm shrink-0">
               <img
-                src={user?.avatar || "https://i.pravatar.cc/160?img=12"}
+                src={avatar}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />
@@ -32,7 +64,18 @@ export default function SettingsPage() {
                 {user?.tier || "Premium Member"} · {user?.email || "julian@aura.finance"}
               </p>
             </div>
-            <button className="btn btn-primary btn-sm sm:ml-auto mt-2 sm:mt-0">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="btn btn-primary btn-sm sm:ml-auto mt-2 sm:mt-0"
+            >
               Change Image
             </button>
           </div>
