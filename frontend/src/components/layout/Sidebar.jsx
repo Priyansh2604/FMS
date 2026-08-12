@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { userProfile } from "../../data/mockData";
 import { getCurrentUser, signOut } from "../../auth";
 
 export default function Sidebar({ onCloseMobile }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const [user, setUser] = useState(getCurrentUser() || userProfile);
+  const [user, setUser] = useState(getCurrentUser());
 
   useEffect(() => {
     function handler() {
-      setUser(getCurrentUser() || userProfile);
+      setUser(getCurrentUser());
     }
     window.addEventListener('aura:session-changed', handler);
     return () => window.removeEventListener('aura:session-changed', handler);
@@ -44,13 +43,13 @@ export default function Sidebar({ onCloseMobile }) {
         {/* User profile */}
         <div className="flex items-center gap-3 bg-surface-container/40 p-3 rounded-xl mb-6 border border-outline-variant/10">
           <img
-            src={user.avatar}
-            alt={user.name}
+            src={user?.avatar}
+            alt={user?.name}
             className="w-10 h-10 rounded-full object-cover border border-outline-variant/30 shrink-0"
           />
           <div className="flex flex-col min-w-0">
-            <span className="font-sans text-label-md text-primary truncate">{user.name}</span>
-            <span className="font-sans text-label-sm text-on-surface-variant truncate">{user.tier}</span>
+            <span className="font-sans text-label-md text-primary truncate">{user?.name}</span>
+            <span className="font-sans text-label-sm text-on-surface-variant truncate">{user?.tier}</span>
           </div>
         </div>
 

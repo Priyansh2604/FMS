@@ -79,9 +79,9 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <p className="font-sans text-headline-md text-primary font-bold">{user?.name || "Julian Vane"}</p>
+              <p className="font-sans text-headline-md text-primary font-bold">{user?.name || "Your account"}</p>
               <p className="font-sans text-body-md text-on-surface-variant mt-1">
-                {user?.tier || "Premium Member"} · {user?.email || "julian@aura.finance"}
+                {user?.tier || "Member"} · {user?.email || "—"}
               </p>
             </div>
             <input

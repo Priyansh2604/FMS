@@ -40,21 +40,32 @@ export default function SignUpPage() {
     return next;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const next = validate();
     setErrors(next);
     setApiError("");
     if (Object.keys(next).length) return;
 
-    const res = registerUser({
+    setLoading(true);
+    const res = await registerUser({
       name: form.name,
       email: form.email,
       password: form.password,
       currency: form.currency
     });
+    setLoading(false);
+
+    if (res.alreadyRegistered) {
+      setApiError("This email is already registered. Please sign in instead.");
+      return;
+    }
     if (!res.ok) {
       setApiError(res.error);
+      return;
+    }
+    if (res.pending) {
+      navigate(`/verify?email=${encodeURIComponent(res.email)}`);
       return;
     }
     navigate("/");
@@ -187,7 +198,12 @@ export default function SignUpPage() {
               </p>
             )}
 
-            <button type="submit" className="btn btn-primary btn-block">Create Account</button>
+            <button type="submit" disabled={loading} className="btn btn-primary btn-block">
+              {loading ? "Creating account…" : "Create Account"}
+            </button>
+            <p className="text-center font-sans text-label-sm text-on-surface-variant -mt-2">
+              We'll email you a 4-digit code to verify your address.
+            </p>
           </form>
 
           <p className="text-center font-sans text-body-md text-on-surface-variant mt-8">

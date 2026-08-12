@@ -24,6 +24,10 @@ export default function LoginPage() {
     const res = await loginUser(email, password);
     setLoading(false);
     if (!res.ok) {
+      if (res.needsVerification) {
+        navigate(`/verify?email=${encodeURIComponent(res.email)}`);
+        return;
+      }
       setError(res.error);
       return;
     }

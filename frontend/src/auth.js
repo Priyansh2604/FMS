@@ -3,26 +3,33 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-<<<<<<< HEAD
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase env vars not set. Auth will not work.');
-=======
-const DEFAULT_AVATAR = "https://i.pravatar.cc/160?img=12";
+}
+
+const SESSION_KEY = 'aura_user';
+const DEFAULT_AVATAR = 'https://i.pravatar.cc/160?img=12';
+
+const PendingStore = {
+  set: (email) => {
+    try { sessionStorage.setItem('aura_pending_email', email); } catch {}
+  },
+  get: () => {
+    try { return sessionStorage.getItem('aura_pending_email') || ''; } catch { return ''; }
+  },
+  clear: () => {
+    try { sessionStorage.removeItem('aura_pending_email'); } catch {}
+  }
+};
 
 // Try to sync session from another origin (usually backend at :5000)
 export function syncSessionFromHost(host = "http://localhost:5000", timeoutMs = 2000) {
   return new Promise((resolve) => {
     try {
-      // If we already have a session, nothing to do
       if (localStorage.getItem(SESSION_KEY)) return resolve(true);
 
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-  }
-
-  const DEFAULT_AVATAR = "https://i.pravatar.cc/160?img=12";
-  const SESSION_KEY = 'aura_user';
-  const USERS_KEY = 'aura_users';
       iframe.src = host + '/session-sync.html';
 
       const timer = setTimeout(() => {
@@ -58,19 +65,7 @@ export function syncSessionFromHost(host = "http://localhost:5000", timeoutMs = 
   });
 }
 
-function readUsers() {
-  try {
-    return JSON.parse(localStorage.getItem(USERS_KEY)) || [];
-  } catch {
-    return [];
-  }
->>>>>>> 63073b35be42bfe1b275aad2e266b051838ecd12
-}
-
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-const SESSION_KEY = 'aura_user';
-const DEFAULT_AVATAR = 'https://i.pravatar.cc/160?img=12';
 
 function setSession(user) {
   localStorage.setItem(
@@ -88,12 +83,18 @@ function setSession(user) {
 }
 
 export async function loginUser(email, password) {
+  const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
+    email: normalizedEmail,
     password
   });
 
   if (error) {
+    const msg = (error.message || '').toLowerCase();
+    if (msg.includes('not confirmed') || msg.includes('confirm your email')) {
+      PendingStore.set(normalizedEmail);
+      return { ok: false, needsVerification: true, email: normalizedEmail, error: error.message };
+    }
     return { ok: false, error: error.message };
   }
 
@@ -106,8 +107,9 @@ export async function loginUser(email, password) {
 }
 
 export async function registerUser({ name, email, password, currency = 'INR' }) {
+  const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.auth.signUp({
-    email: email.trim().toLowerCase(),
+    email: normalizedEmail,
     password,
     options: {
       data: {
@@ -120,15 +122,57 @@ export async function registerUser({ name, email, password, currency = 'INR' }) 
   });
 
   if (error) {
+    const msg = (error.message || '').toLowerCase();
+    if (msg.includes('already registered') || msg.includes('already been registered')) {
+      return { ok: false, alreadyRegistered: true, error: error.message };
+    }
     return { ok: false, error: error.message };
   }
 
-  if (data.user) {
+  // No session returned => email confirmation (OTP) required before sign-in.
+  if (data.user && !data.session) {
+    PendingStore.set(normalizedEmail);
+    return { ok: true, pending: true, email: normalizedEmail };
+  }
+
+  if (data.session) {
     setSession(data.user);
     return { ok: true, user: data.user };
   }
 
   return { ok: false, error: 'Registration failed. Please try again.' };
+}
+
+export async function verifySignupOtp(email, token) {
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim().toLowerCase(),
+    token: token.trim(),
+    type: 'signup'
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+
+  if (data.user) {
+    setSession(data.user);
+    PendingStore.clear();
+    return { ok: true, user: data.user };
+  }
+
+  return { ok: false, error: 'Verification failed. Please try again.' };
+}
+
+export async function resendSignupOtp(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim().toLowerCase()
+  });
+
+  if (error) {
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 
 export function getCurrentUser() {
@@ -140,10 +184,6 @@ export function getCurrentUser() {
   }
 }
 
-<<<<<<< HEAD
-export async function signOut() {
-  await supabase.auth.signOut();
-=======
 export function updateCurrentUserAvatar(avatar) {
   const currentUser = getCurrentUser();
   if (!currentUser) return null;
@@ -155,17 +195,6 @@ export function updateCurrentUserAvatar(avatar) {
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
 
-  const users = readUsers();
-  const index = users.findIndex(
-    (u) => u.email.toLowerCase() === (currentUser.email || "").toLowerCase()
-  );
-
-  if (index >= 0) {
-    users[index] = { ...users[index], avatar };
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }
-
-  // notify listeners that session changed
   try {
     window.dispatchEvent(new CustomEvent('aura:session-changed', { detail: updatedUser }));
   } catch (e) {}
@@ -186,16 +215,6 @@ export function updateCurrentUserCurrency(currency) {
     localStorage.setItem(SESSION_KEY, JSON.stringify(updatedUser));
   } catch {}
 
-  const users = readUsers();
-  const index = users.findIndex(
-    (u) => u.email.toLowerCase() === (currentUser.email || "").toLowerCase()
-  );
-
-  if (index >= 0) {
-    users[index] = { ...users[index], currency };
-    try { localStorage.setItem(USERS_KEY, JSON.stringify(users)); } catch {}
-  }
-
   try {
     window.dispatchEvent(new CustomEvent('aura:session-changed', { detail: updatedUser }));
   } catch (e) {}
@@ -203,8 +222,8 @@ export function updateCurrentUserCurrency(currency) {
   return updatedUser;
 }
 
-export function signOut() {
->>>>>>> 63073b35be42bfe1b275aad2e266b051838ecd12
+export async function signOut() {
+  await supabase.auth.signOut();
   localStorage.removeItem(SESSION_KEY);
 }
 

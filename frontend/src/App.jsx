@@ -9,6 +9,7 @@ import SettingsPage from "./pages/SettingsPage";
 import InvestmentsPage from "./pages/InvestmentsPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import VerifyOtpPage from "./pages/VerifyOtpPage";
 import { getCurrentUser } from "./auth";
 
 function RequireAuth() {
@@ -33,6 +34,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
+        <Route path="/verify" element={<VerifyOtpPage />} />
 
         <Route element={<RequireAuth />}>
           <Route element={<AppLayout />}>

@@ -1,9 +1,3 @@
-export const userProfile = {
-  name: "Julian Vane",
-  tier: "Premium Member",
-  avatar: "https://i.pravatar.cc/160?img=12"
-};
-
 export const notifications = [
   { id: 1, icon: "receipt_long", title: "New transaction posted", description: "Whole Foods Market · -$245.50", time: "2m ago", unread: true },
   { id: 2, icon: "trending_up", title: "Budget threshold reached", description: "Entertainment is at 85% of its monthly limit.", time: "1h ago", unread: true },
