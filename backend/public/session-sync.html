@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Session Sync</title>
+  </head>
+  <body>
+    <script>
+      (function(){
+        try {
+          const SESSION_KEY = 'aura_user';
+          const session = (function(){
+            try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch(e){ return null; }
+          })();
+
+          // Post session data to the parent window (dev server origin)
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage({ type: 'AURA_SESSION', session }, '*');
+          }
+        } catch(e) {
+          // ignore
+        }
+      })();
+    </script>
+    <p>Session sync helper</p>
+  </body>
+</html>

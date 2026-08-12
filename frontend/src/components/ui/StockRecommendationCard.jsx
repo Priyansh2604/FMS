@@ -1,5 +1,6 @@
 import React from "react";
 import RiskScore from "./RiskScore";
+import { formatCurrency } from "../../utils/currency";
 
 export default function StockRecommendationCard({ stock }) {
   const up = stock.changePct.startsWith("+");
@@ -30,7 +31,7 @@ export default function StockRecommendationCard({ stock }) {
       <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
         <div className="flex flex-col gap-1">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Price</span>
-          <span className="font-display text-headline-md text-primary font-semibold">{stock.price}</span>
+          <span className="font-display text-headline-md text-primary font-semibold">{typeof stock.price === 'number' ? formatCurrency(stock.price) : stock.price}</span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Expected Return</span>
@@ -38,7 +39,7 @@ export default function StockRecommendationCard({ stock }) {
         </div>
         <div className="flex flex-col gap-1">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Suggested Invest</span>
-          <span className="font-display text-headline-md text-primary font-semibold">{stock.allocate}</span>
+          <span className="font-display text-headline-md text-primary font-semibold">{typeof stock.allocate === 'number' ? formatCurrency(stock.allocate) : stock.allocate}</span>
         </div>
         <div className="flex flex-col gap-1 lg:ml-auto">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Risk Score</span>

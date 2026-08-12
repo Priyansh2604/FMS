@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { transactionLedger } from "../data/mockData";
+import { formatCurrency } from "../utils/currency";
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState(transactionLedger.transactions);
@@ -22,6 +23,7 @@ export default function TransactionsPage() {
   const [merchantName, setMerchantName] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
+  const [transactionType, setTransactionType] = useState("expense");
   const [category, setCategory] = useState("");
   const [account, setAccount] = useState("checking");
   const [notes, setNotes] = useState("");
@@ -32,14 +34,18 @@ export default function TransactionsPage() {
     e.preventDefault();
     if (!merchantName || !amount || !date || !category) return;
 
+    const parsedAmount = parseFloat(amount);
+    const isIncome = transactionType === "income";
+
     const newTx = {
       id: Date.now(),
       merchant: merchantName,
-      category: category.charAt(0).toUpperCase() + category.slice(1),
-      amount: `-$${parseFloat(amount).toFixed(2)}`,
+      category: formatCategoryLabel(category),
+      amount: isIncome ? Math.abs(parsedAmount) : -Math.abs(parsedAmount),
       date: date,
       icon: getCategoryIcon(category),
-      isExpense: true
+      isIncome,
+      isExpense: !isIncome
     };
 
     setTransactions((currentTransactions) => [newTx, ...currentTransactions]);
@@ -49,6 +55,7 @@ export default function TransactionsPage() {
     setMerchantName("");
     setAmount("");
     setDate("");
+    setTransactionType("expense");
     setCategory("");
     setAccount("checking");
     setNotes("");
@@ -68,16 +75,50 @@ export default function TransactionsPage() {
     }
   };
 
+  const formatCategoryLabel = (cat) => {
+    return cat
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   const getCategoryIcon = (cat) => {
     switch (cat) {
-      case "dining": return "restaurant";
+      case "dining":
+      case "salary":
+      case "freelance":
+        return "payments";
       case "groceries": return "shopping_cart";
       case "shopping": return "shopping_bag";
       case "travel": return "flight";
       case "utilities": return "cloud";
+      case "stock profit":
+      case "investment returns":
+      case "property deals":
+        return "trending_up";
       default: return "receipt_long";
     }
   };
+
+  const categoryOptions = transactionType === "income"
+    ? [
+        { value: "salary", label: "Salary / Paycheck" },
+        { value: "freelance", label: "Freelance Income" },
+        { value: "stock profit", label: "Stock Profit" },
+        { value: "investment returns", label: "Investment Returns" },
+        { value: "property deals", label: "Property Deals / Selling" },
+        { value: "other income", label: "Other Income" }
+      ]
+    : [
+        { value: "dining", label: "Dining & Drinks" },
+        { value: "groceries", label: "Groceries" },
+        { value: "shopping", label: "Shopping" },
+        { value: "travel", label: "Travel" },
+        { value: "utilities", label: "Utilities" },
+        { value: "rent", label: "Rent" },
+        { value: "subscriptions", label: "Subscriptions" },
+        { value: "other expense", label: "Other Expense" }
+      ];
 
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto">
@@ -103,13 +144,13 @@ export default function TransactionsPage() {
 
       {/* Overview stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="editorial-card p-6 flex flex-col gap-2">
+          <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Inflow</span>
-          <span className="font-display text-headline-lg text-emerald-700">{transactionLedger.inflow}</span>
+          <span className="font-display text-headline-lg text-emerald-700">{formatCurrency(transactionLedger.inflow)}</span>
         </div>
         <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Outflow</span>
-          <span className="font-display text-headline-lg text-rose-700">{transactionLedger.outflow}</span>
+          <span className="font-display text-headline-lg text-rose-700">{formatCurrency(transactionLedger.outflow)}</span>
         </div>
         <div className="editorial-card p-6 flex flex-col gap-2 justify-center">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Monthly Trend</span>
@@ -155,7 +196,7 @@ export default function TransactionsPage() {
                 <td className={`px-6 py-4 text-right font-display text-[20px] font-medium whitespace-nowrap ${
                   tx.isIncome ? "text-emerald-700" : "text-primary"
                 }`}>
-                  {tx.amount}
+                  {formatCurrency(tx.amount)}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button
@@ -237,7 +278,7 @@ export default function TransactionsPage() {
               {/* Merchant Name */}
               <div className="space-y-2 shrink-0">
                 <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
-                  Merchant Name
+                  Source / Description
                 </label>
                 <input
                   type="text"
@@ -245,8 +286,31 @@ export default function TransactionsPage() {
                   value={merchantName}
                   onChange={(e) => setMerchantName(e.target.value)}
                   className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none"
-                  placeholder="e.g. Whole Foods Market"
+                  placeholder="e.g. Stock sale or property deal"
                 />
+              </div>
+
+              {/* Transaction Type */}
+              <div className="space-y-2 shrink-0">
+                <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
+                  Transaction Type
+                </label>
+                <div className="relative">
+                  <select
+                    value={transactionType}
+                    onChange={(e) => {
+                      setTransactionType(e.target.value);
+                      setCategory("");
+                    }}
+                    className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary appearance-none outline-none"
+                  >
+                    <option value="expense">Expense</option>
+                    <option value="income">Income / Inflow</option>
+                  </select>
+                  <span className="material-symbols-outlined absolute right-0 top-2 text-on-surface-variant pointer-events-none">
+                    expand_more
+                  </span>
+                </div>
               </div>
 
               {/* Amount & Date */}
@@ -285,7 +349,7 @@ export default function TransactionsPage() {
               {/* Category */}
               <div className="space-y-2 shrink-0">
                 <label className="block font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">
-                  Category
+                  {transactionType === "income" ? "Income Category" : "Expense Category"}
                 </label>
                 <div className="relative">
                   <select
@@ -295,11 +359,11 @@ export default function TransactionsPage() {
                     className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary appearance-none outline-none"
                   >
                     <option value="" disabled>Select category...</option>
-                    <option value="dining">Dining &amp; Drinks</option>
-                    <option value="groceries">Groceries</option>
-                    <option value="shopping">Shopping</option>
-                    <option value="travel">Travel</option>
-                    <option value="utilities">Utilities</option>
+                    {categoryOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
                   </select>
                   <span className="material-symbols-outlined absolute right-0 top-2 text-on-surface-variant pointer-events-none">
                     expand_more

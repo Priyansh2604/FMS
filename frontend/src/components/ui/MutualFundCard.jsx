@@ -1,5 +1,6 @@
 import React from "react";
 import RiskScore from "./RiskScore";
+import { formatCurrency } from "../../utils/currency";
 
 export default function MutualFundCard({ fund }) {
   return (
@@ -12,7 +13,7 @@ export default function MutualFundCard({ fund }) {
           <div className="min-w-0">
             <p className="font-sans text-body-md text-primary font-bold truncate">{fund.name}</p>
             <p className="font-sans text-label-sm text-on-surface-variant truncate">
-              {fund.category} · NAV {fund.nav}
+              {fund.category} · NAV {typeof fund.nav === 'number' ? formatCurrency(fund.nav) : fund.nav}
             </p>
           </div>
         </div>
@@ -22,7 +23,7 @@ export default function MutualFundCard({ fund }) {
       <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
         <div className="flex flex-col gap-1">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">SIP Amount</span>
-          <span className="font-display text-headline-md text-primary font-semibold">{fund.sipMonthly}/mo</span>
+          <span className="font-display text-headline-md text-primary font-semibold">{typeof fund.sipMonthly === 'number' ? formatCurrency(fund.sipMonthly) : fund.sipMonthly}/mo</span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Expected Return</span>

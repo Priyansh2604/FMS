@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/currency";
 
 export default function BudgetRing({ category, spent, total, percentage, strokeOffset, accentRing = false }) {
   return (
@@ -34,7 +35,7 @@ export default function BudgetRing({ category, spent, total, percentage, strokeO
       <div className="flex flex-col gap-1">
         <span className="font-sans text-body-md text-primary font-medium">{category}</span>
         <span className="font-sans text-label-sm text-on-surface-variant">
-          {spent} / {total}
+          {formatCurrency(spent)} / {formatCurrency(total)}
         </span>
       </div>
     </div>

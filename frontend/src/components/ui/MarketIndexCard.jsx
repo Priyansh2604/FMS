@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/currency";
 
 export default function MarketIndexCard({ name, value, change, changePct, icon, up = true }) {
   return (
@@ -13,7 +14,7 @@ export default function MarketIndexCard({ name, value, change, changePct, icon, 
         </span>
       </div>
       <div className="flex items-end justify-between gap-3 flex-wrap">
-        <span className="font-display text-headline-md text-primary font-semibold">{value}</span>
+        <span className="font-display text-headline-md text-primary font-semibold">{typeof value === 'number' ? formatCurrency(value) : value}</span>
         <span className={`font-sans text-label-sm font-bold ${up ? "text-emerald-700" : "text-rose-700"}`}>
           {up ? "+" : ""}{change} · {changePct}
         </span>

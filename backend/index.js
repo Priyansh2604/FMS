@@ -9,6 +9,8 @@ dotenv.config({ path: path.resolve(__dirname, '.env') });
 const app = express();
 app.use(cors());
 app.use(express.json());
+// Serve small public helpers (session-sync) for development
+app.use(express.static(path.join(__dirname, 'public')));
 
 const transactionRoutes = require('./routes/transactions');
 app.use('/api/transactions', transactionRoutes);
