@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/currency";
 
 export default function CategoryCard({
   type,
@@ -84,7 +85,7 @@ export default function CategoryCard({
               <p className={`font-display text-display text-primary ${
                 isDark ? "text-on-tertiary" : "text-primary"
               }`}>
-                {valuation}
+                {typeof valuation === 'number' ? formatCurrency(valuation) : valuation}
               </p>
             </div>
           )}

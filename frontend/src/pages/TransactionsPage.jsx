@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { transactionLedger } from "../data/mockData";
+import { formatCurrency } from "../utils/currency";
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState(transactionLedger.transactions);
@@ -35,13 +36,12 @@ export default function TransactionsPage() {
 
     const parsedAmount = parseFloat(amount);
     const isIncome = transactionType === "income";
-    const amountPrefix = isIncome ? "+" : "-";
 
     const newTx = {
       id: Date.now(),
       merchant: merchantName,
       category: formatCategoryLabel(category),
-      amount: `${amountPrefix}$${parsedAmount.toFixed(2)}`,
+      amount: isIncome ? Math.abs(parsedAmount) : -Math.abs(parsedAmount),
       date: date,
       icon: getCategoryIcon(category),
       isIncome,
@@ -144,13 +144,13 @@ export default function TransactionsPage() {
 
       {/* Overview stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="editorial-card p-6 flex flex-col gap-2">
+          <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Inflow</span>
-          <span className="font-display text-headline-lg text-emerald-700">{transactionLedger.inflow}</span>
+          <span className="font-display text-headline-lg text-emerald-700">{formatCurrency(transactionLedger.inflow)}</span>
         </div>
         <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Outflow</span>
-          <span className="font-display text-headline-lg text-rose-700">{transactionLedger.outflow}</span>
+          <span className="font-display text-headline-lg text-rose-700">{formatCurrency(transactionLedger.outflow)}</span>
         </div>
         <div className="editorial-card p-6 flex flex-col gap-2 justify-center">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Monthly Trend</span>
@@ -196,7 +196,7 @@ export default function TransactionsPage() {
                 <td className={`px-6 py-4 text-right font-display text-[20px] font-medium whitespace-nowrap ${
                   tx.isIncome ? "text-emerald-700" : "text-primary"
                 }`}>
-                  {tx.amount}
+                  {formatCurrency(tx.amount)}
                 </td>
                 <td className="px-6 py-4 text-right">
                   <button

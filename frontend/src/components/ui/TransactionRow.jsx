@@ -1,4 +1,5 @@
 import React from "react";
+import { formatCurrency } from "../../utils/currency";
 
 export default function TransactionRow({ merchant, category, amount, icon, accentIcon = false, isExpense = true }) {
   return (
@@ -19,7 +20,7 @@ export default function TransactionRow({ merchant, category, amount, icon, accen
       <div className={`col-span-3 text-right font-display text-[20px] font-medium leading-none ${
         isExpense ? "text-primary" : "text-emerald-700"
       }`}>
-        {amount}
+        {typeof amount === 'number' ? formatCurrency(amount) : amount}
       </div>
     </div>
   );

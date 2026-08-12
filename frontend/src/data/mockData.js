@@ -13,15 +13,15 @@ export const notifications = [
 ];
 
 export const calendarEvents = [
-  { id: 1, day: 6, title: "Credit card bill due", amount: "₹12,400" },
-  { id: 2, day: 14, title: "Rent payment", amount: "₹28,000" },
-  { id: 3, day: 21, title: "Salary deposit", amount: "₹95,000" },
-  { id: 4, day: 27, title: "SIP mutual funds", amount: "₹2,500" }
+  { id: 1, day: 6, title: "Credit card bill due", amount: 12400 },
+  { id: 2, day: 14, title: "Rent payment", amount: 28000 },
+  { id: 3, day: 21, title: "Salary deposit", amount: 95000 },
+  { id: 4, day: 27, title: "SIP mutual funds", amount: 2500 }
 ];
 
 export const dashboardOverview = {
-  balance: "₹84,520",
-  income: "₹12,400",
+  balance: 84520,
+  income: 12400,
   healthScore: "82%",
   insights: {
     title: "AI Insight: Unusual Spending Pattern",
@@ -33,25 +33,25 @@ export const dashboardOverview = {
 export const spendingTimeline = [
   {
     date: "Today, Oct 12",
-    total: "₹1,240",
+    total: 1240,
     transactions: [
-      { id: 1, merchant: "Artisan Coffee", amount: "₹340" },
-      { id: 2, merchant: "Whole Foods", amount: "₹900" }
+      { id: 1, merchant: "Artisan Coffee", amount: 340 },
+      { id: 2, merchant: "Whole Foods", amount: 900 }
     ]
   },
   {
     date: "Yesterday, Oct 11",
-    total: "₹8,500",
+    total: 8500,
     transactions: [
-      { id: 3, merchant: "Apple Store", amount: "₹8,500" }
+      { id: 3, merchant: "Apple Store", amount: 8500 }
     ],
     highlight: true
   },
   {
     date: "Wed, Oct 10",
-    total: "₹450",
+    total: 450,
     transactions: [
-      { id: 4, merchant: "Uber", amount: "₹450" }
+      { id: 4, merchant: "Uber", amount: 450 }
     ],
     muted: true
   }
@@ -62,7 +62,7 @@ export const recentTransactions = [
     id: 101,
     merchant: "Le Bernardin",
     category: "Dining",
-    amount: "-₹4,200",
+    amount: -4200,
     icon: "restaurant",
     isExpense: true
   },
@@ -70,7 +70,7 @@ export const recentTransactions = [
     id: 102,
     merchant: "Emirates Airlines",
     category: "Travel",
-    amount: "-₹62,000",
+    amount: -62000,
     icon: "flight",
     isExpense: true,
     accentIcon: true
@@ -81,16 +81,16 @@ export const budgetStatus = [
   {
     id: 201,
     category: "Home Office",
-    spent: "₹15k",
-    total: "₹20k",
+    spent: 15000,
+    total: 20000,
     percentage: 75,
     strokeOffset: 62.8
   },
   {
     id: 202,
     category: "Entertainment",
-    spent: "₹4k",
-    total: "₹10k",
+    spent: 4000,
+    total: 10000,
     percentage: 40,
     strokeOffset: 150.72,
     accentRing: true
@@ -105,20 +105,20 @@ export const creditLocation = {
 };
 
 export const upcomingBills = [
-  { id: 301, name: "AWS Hosting", amount: "₹2,100", dotColor: "bg-primary" },
-  { id: 302, name: "Adobe CC", amount: "₹4,230", dotColor: "bg-tertiary-fixed" }
+  { id: 301, name: "AWS Hosting", amount: 2100, dotColor: "bg-primary" },
+  { id: 302, name: "Adobe CC", amount: 4230, dotColor: "bg-tertiary-fixed" }
 ];
 
 export const transactionLedger = {
-  inflow: "$42,500.00",
-  outflow: "$18,240.75",
+  inflow: 42500,
+  outflow: 18240.75,
   trend: "+12% vs last month",
   transactions: [
-    { id: 401, merchant: "Le Bernardin", category: "Dining", amount: "-$120.00", date: "2026-08-04", icon: "restaurant" },
-    { id: 402, merchant: "Whole Foods", category: "Groceries", amount: "-$245.50", date: "2026-08-04", icon: "shopping_cart" },
-    { id: 403, merchant: "AWS Cloud", category: "Utilities", amount: "-$89.00", date: "2026-08-03", icon: "cloud" },
-    { id: 404, merchant: "Emirates Airlines", category: "Travel", amount: "-$1,200.00", date: "2026-08-02", icon: "flight" },
-    { id: 405, merchant: "Salary Client A", category: "Income", amount: "+$8,500.00", date: "2026-08-01", icon: "payments", isIncome: true }
+    { id: 401, merchant: "Le Bernardin", category: "Dining", amount: -120.0, date: "2026-08-04", icon: "restaurant" },
+    { id: 402, merchant: "Whole Foods", category: "Groceries", amount: -245.5, date: "2026-08-04", icon: "shopping_cart" },
+    { id: 403, merchant: "AWS Cloud", category: "Utilities", amount: -89.0, date: "2026-08-03", icon: "cloud" },
+    { id: 404, merchant: "Emirates Airlines", category: "Travel", amount: -1200.0, date: "2026-08-02", icon: "flight" },
+    { id: 405, merchant: "Salary Client A", category: "Income", amount: 8500.0, date: "2026-08-01", icon: "payments", isIncome: true }
   ]
 };
 
@@ -126,7 +126,7 @@ export const portfolioCategories = [
   {
     id: 501,
     type: "Property",
-    valuation: "$4.2M",
+    valuation: 4200000,
     percentage: "34.2%",
     trend: "+8.4% YTD",
     icon: "domain",
@@ -136,7 +136,7 @@ export const portfolioCategories = [
   {
     id: 502,
     type: "Equities",
-    valuation: "$5.18M",
+    valuation: 5180000,
     percentage: "42.1%",
     sectors: [
       { name: "Tech Sector", value: "45%" },
@@ -148,7 +148,7 @@ export const portfolioCategories = [
   {
     id: 503,
     type: "Fixed Income",
-    valuation: "$1.8M",
+    valuation: 1800000,
     label: "Yielding",
     description: "Targeting Capital Preservation",
     icon: "account_balance"
@@ -156,7 +156,7 @@ export const portfolioCategories = [
   {
     id: 504,
     type: "Mutual Funds",
-    valuation: "$1.9M",
+    valuation: 1900000,
     percentage: "15.5%",
     label: "Diversified Basket",
     icon: "pie_chart",
@@ -203,10 +203,10 @@ export const chatMessages = [
 ];
 
 export const marketIndices = [
-  { id: 901, name: "NIFTY 50", value: "₹24,870", change: "+212.4", changePct: "+0.86%", icon: "show_chart", up: true },
-  { id: 902, name: "SENSEX", value: "₹81,341", change: "+598.2", changePct: "+0.74%", icon: "trending_up", up: true },
-  { id: 903, name: "Gold (MCX)", value: "₹71,240", change: "+228.0", changePct: "+0.32%", icon: "monitoring", up: true },
-  { id: 904, name: "NIFTY Bank", value: "₹52,160", change: "-215.5", changePct: "-0.41%", icon: "account_balance", up: false }
+  { id: 901, name: "NIFTY 50", value: 24870, change: "+212.4", changePct: "+0.86%", icon: "show_chart", up: true },
+  { id: 902, name: "SENSEX", value: 81341, change: "+598.2", changePct: "+0.74%", icon: "trending_up", up: true },
+  { id: 903, name: "Gold (MCX)", value: 71240, change: "+228.0", changePct: "+0.32%", icon: "monitoring", up: true },
+  { id: 904, name: "NIFTY Bank", value: 52160, change: "-215.5", changePct: "-0.41%", icon: "account_balance", up: false }
 ];
 
 export const marketTrend = {
@@ -263,11 +263,11 @@ export const stockRecommendations = [
     symbol: "TCS",
     name: "Tata Consultancy Services",
     sector: "IT Services",
-    price: "₹4,120.50",
+    price: 4120.5,
     changePct: "+1.24%",
     riskScore: 62,
     expectedReturn: "12–14% p.a.",
-    allocate: "₹13,500",
+    allocate: 13500,
     icon: "code",
     rationale:
       "Large-cap leader with strong free cash flow and consistent dividends. A stable core position that fits a moderate-risk portfolio."
@@ -277,11 +277,11 @@ export const stockRecommendations = [
     symbol: "HDFCBANK",
     name: "HDFC Bank",
     sector: "Banking",
-    price: "₹1,540.30",
+    price: 1540.3,
     changePct: "+0.62%",
     riskScore: 52,
     expectedReturn: "10–12% p.a.",
-    allocate: "₹11,000",
+    allocate: 11000,
     icon: "account_balance",
     rationale:
       "Top-tier private bank with robust asset quality and steady earnings growth. Lower volatility, dependable dividends."
@@ -291,11 +291,11 @@ export const stockRecommendations = [
     symbol: "RELIANCE",
     name: "Reliance Industries",
     sector: "Energy / Retail",
-    price: "₹2,980.00",
+    price: 2980.0,
     changePct: "+0.94%",
     riskScore: 58,
     expectedReturn: "11–13% p.a.",
-    allocate: "₹9,500",
+    allocate: 9500,
     icon: "local_gas_station",
     rationale:
       "Diversified conglomerate with growth engines across energy, telecom, and retail. Good long-term compounder."
@@ -305,11 +305,11 @@ export const stockRecommendations = [
     symbol: "ZOMATO",
     name: "Zomato",
     sector: "Consumer Tech",
-    price: "₹182.40",
+    price: 182.4,
     changePct: "+3.10%",
     riskScore: 82,
     expectedReturn: "18–24% p.a.",
-    allocate: "₹3,800",
+    allocate: 3800,
     icon: "delivery_dining",
     rationale:
       "High-growth but volatile. Recommended only as a small satellite position from your risk budget — not a core holding."
@@ -321,8 +321,8 @@ export const mutualFundRecommendations = [
     id: 2001,
     name: "HDFC Top 100 Fund",
     category: "Large Cap",
-    nav: "₹842.10",
-    sipMonthly: "₹2,000",
+    nav: 842.1,
+    sipMonthly: 2000,
     riskScore: 55,
     expectedReturn: "12–14% p.a.",
     icon: "pie_chart",
@@ -333,8 +333,8 @@ export const mutualFundRecommendations = [
     id: 2002,
     name: "Parag Parikh Flexi Cap",
     category: "Flexi Cap",
-    nav: "₹61.25",
-    sipMonthly: "₹3,000",
+    nav: 61.25,
+    sipMonthly: 3000,
     riskScore: 58,
     expectedReturn: "13–15% p.a.",
     icon: "diversity_2",
@@ -345,8 +345,8 @@ export const mutualFundRecommendations = [
     id: 2003,
     name: "SBI Blue Chip Fund",
     category: "Large Cap",
-    nav: "₹68.90",
-    sipMonthly: "₹1,500",
+    nav: 68.9,
+    sipMonthly: 1500,
     riskScore: 50,
     expectedReturn: "11–13% p.a.",
     icon: "shield",
@@ -357,8 +357,8 @@ export const mutualFundRecommendations = [
     id: 2004,
     name: "Mirae Asset Large & Midcap",
     category: "Large & Mid Cap",
-    nav: "₹142.60",
-    sipMonthly: "₹2,500",
+    nav: 142.6,
+    sipMonthly: 2500,
     riskScore: 60,
     expectedReturn: "13–16% p.a.",
     icon: "equalizer",

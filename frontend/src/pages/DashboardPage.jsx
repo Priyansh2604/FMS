@@ -12,6 +12,7 @@ import {
   creditLocation,
   upcomingBills,
 } from "../data/mockData";
+import { formatCurrency } from "../utils/currency";
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -26,8 +27,8 @@ export default function DashboardPage() {
             Financial Overview
           </h1>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 border-t border-outline-variant/30 pt-8">
-            <StatCard label="Current Balance" value={dashboardOverview.balance} />
-            <StatCard label="Monthly Income" value={dashboardOverview.income} isBordered />
+            <StatCard label="Current Balance" value={formatCurrency(dashboardOverview.balance)} />
+            <StatCard label="Monthly Income" value={formatCurrency(dashboardOverview.income)} isBordered />
             <StatCard
               label="Health Score"
               value={dashboardOverview.healthScore}
@@ -60,7 +61,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col">
                   <span className="font-sans text-label-md text-primary">{item.date}</span>
                   <span className="font-sans text-body-md text-on-surface-variant mt-1">
-                    {item.total} Total
+                    {formatCurrency(item.total)} Total
                   </span>
                 </div>
                 <div
@@ -74,7 +75,7 @@ export default function DashboardPage() {
                         {tx.merchant}
                       </span>
                       <span className="font-display text-headline-md text-primary font-medium shrink-0">
-                        {tx.amount}
+                        {formatCurrency(tx.amount)}
                       </span>
                     </div>
                   ))}
@@ -101,7 +102,7 @@ export default function DashboardPage() {
                   key={tx.id}
                   merchant={tx.merchant}
                   category={tx.category}
-                  amount={tx.amount}
+                  amount={formatCurrency(tx.amount)}
                   icon={tx.icon}
                   accentIcon={tx.accentIcon}
                   isExpense={tx.isExpense}
@@ -157,7 +158,7 @@ export default function DashboardPage() {
         {/* Upcoming Bills widget */}
         <div className="editorial-card p-6 lg:p-8 flex flex-col gap-4">
           <h3 className="font-sans text-headline-sm text-primary mb-2">Upcoming Bills</h3>
-          <ul className="flex flex-col gap-4">
+            <ul className="flex flex-col gap-4">
             {upcomingBills.map((bill) => (
               <li
                 key={bill.id}
@@ -170,7 +171,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <span className="font-sans text-body-md text-primary font-medium">
-                  {bill.amount}
+                  {formatCurrency(bill.amount)}
                 </span>
               </li>
             ))}

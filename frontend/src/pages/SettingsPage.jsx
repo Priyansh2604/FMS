@@ -1,16 +1,36 @@
-import React, { useRef, useState } from "react";
-import { getCurrentUser, updateCurrentUserAvatar } from "../auth";
+import React, { useRef, useState, useEffect } from "react";
+import { getCurrentUser, updateCurrentUserAvatar, updateCurrentUserCurrency, syncSessionFromHost } from "../auth";
+import { isDarkTheme, toggleTheme } from "../theme";
 
 const DEFAULT_AVATAR = "https://i.pravatar.cc/160?img=12";
 
 export default function SettingsPage() {
   const currentUser = getCurrentUser();
   const [user, setUser] = useState(currentUser);
-  const [darkTheme, setDarkTheme] = useState(false);
+  const [darkTheme, setDarkTheme] = useState(() => {
+    try {
+      return isDarkTheme();
+    } catch {
+      return false;
+    }
+  });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currency, setCurrency] = useState(user?.currency || "INR");
   const [avatar, setAvatar] = useState(user?.avatar || DEFAULT_AVATAR);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    // If there's no local session (e.g., running on a different port), try to sync from backend origin
+    if (!getCurrentUser()) {
+      syncSessionFromHost().then((ok) => {
+        if (ok) {
+          const refreshed = getCurrentUser();
+          setUser(refreshed);
+          setAvatar(refreshed?.avatar || DEFAULT_AVATAR);
+        }
+      });
+    }
+  }, []);
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0];
@@ -87,9 +107,18 @@ export default function SettingsPage() {
                 <p className="font-sans text-body-lg text-primary font-medium">Default Currency</p>
                 <p className="font-sans text-body-md text-on-surface-variant mt-1">Select standard symbol presentation.</p>
               </div>
-              <select
+                <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setCurrency(next);
+                  try {
+                    const updated = updateCurrentUserCurrency(next);
+                    if (updated) { setUser(updated); }
+                  } catch (err) {
+                    console.error(err);
+                  }
+                }}
                 className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-4 py-2.5 font-sans text-body-md text-primary outline-none focus:border-primary shadow-sm min-w-[120px]"
               >
                 <option value="INR">INR (₹)</option>
@@ -119,7 +148,15 @@ export default function SettingsPage() {
                 <p className="font-sans text-body-md text-on-surface-variant mt-1">Switch application color scheme.</p>
               </div>
               <button
-                onClick={() => setDarkTheme(!darkTheme)}
+                onClick={() => {
+                  try {
+                    const next = toggleTheme();
+                    setDarkTheme(next);
+                  } catch (e) {
+                    console.error('Theme toggle failed', e);
+                    setDarkTheme((s) => !s);
+                  }
+                }}
                 className={`w-12 h-6 rounded-full transition-colors relative shrink-0 ${
                   darkTheme ? "bg-primary" : "bg-outline-variant"
                 }`}

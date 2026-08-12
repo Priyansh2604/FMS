@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import AppLayout from "./components/layout/AppLayout";
 import DashboardPage from "./pages/DashboardPage";
@@ -16,6 +16,18 @@ function RequireAuth() {
 }
 
 export default function App() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const handler = () => setTick((t) => t + 1);
+    window.addEventListener('aura:session-changed', handler);
+    window.addEventListener('aura:fx-updated', handler);
+    return () => {
+      window.removeEventListener('aura:session-changed', handler);
+      window.removeEventListener('aura:fx-updated', handler);
+    };
+  }, []);
+
   return (
     <BrowserRouter>
       <Routes>

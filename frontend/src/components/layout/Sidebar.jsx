@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { userProfile } from "../../data/mockData";
 import { getCurrentUser, signOut } from "../../auth";
@@ -6,7 +6,15 @@ import { getCurrentUser, signOut } from "../../auth";
 export default function Sidebar({ onCloseMobile }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const user = getCurrentUser() || userProfile;
+  const [user, setUser] = useState(getCurrentUser() || userProfile);
+
+  useEffect(() => {
+    function handler() {
+      setUser(getCurrentUser() || userProfile);
+    }
+    window.addEventListener('aura:session-changed', handler);
+    return () => window.removeEventListener('aura:session-changed', handler);
+  }, []);
 
   const handleSignOut = () => {
     signOut();
