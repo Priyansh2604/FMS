@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.112.2",
     "@tailwindcss/vite": "^4.3.3",
     "ogl": "^1.0.11",
     "react": "^19.0.0",

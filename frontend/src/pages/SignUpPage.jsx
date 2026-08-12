@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { registerUser, getCurrentUser } from "../auth";
+import { registerUser, getCurrentUser, initializeAuth } from "../auth";
+import { useEffect } from "react";
 
 export default function SignUpPage() {
   const navigate = useNavigate();
@@ -14,6 +15,11 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    initializeAuth();
+  }, []);
 
   if (getCurrentUser()) return <Navigate to="/" replace />;
 

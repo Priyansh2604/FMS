@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { loginUser, getCurrentUser, DEMO_CREDENTIALS } from "../auth";
+import { loginUser, getCurrentUser, initializeAuth } from "../auth";
+import { useEffect } from "react";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -10,21 +11,23 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    initializeAuth();
+  }, []);
+
   if (getCurrentUser()) return <Navigate to="/" replace />;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setTimeout(() => {
-      const res = loginUser(email, password);
-      setLoading(false);
-      if (!res.ok) {
-        setError(res.error);
-        return;
-      }
-      navigate("/");
-    }, 400);
+    const res = await loginUser(email, password);
+    setLoading(false);
+    if (!res.ok) {
+      setError(res.error);
+      return;
+    }
+    navigate("/");
   };
 
   return (
@@ -121,16 +124,6 @@ export default function LoginPage() {
               {loading ? "Signing in…" : "Sign In"}
             </button>
           </form>
-
-          {/* Demo hint */}
-          <div className="mt-6 rounded-xl bg-tertiary-fixed/20 border border-tertiary-fixed/30 p-4 flex flex-col gap-1">
-            <p className="font-sans text-label-sm text-on-tertiary-fixed uppercase tracking-widest font-bold">
-              Demo account
-            </p>
-            <p className="font-sans text-label-md text-on-surface-variant">
-              {DEMO_CREDENTIALS.email} · {DEMO_CREDENTIALS.password}
-            </p>
-          </div>
 
           <p className="text-center font-sans text-body-md text-on-surface-variant mt-8">
             New to Aura?{" "}
