@@ -8,27 +8,35 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const anonKey = process.env.SUPABASE_ANON_KEY;
 
-if (!supabaseUrl) {
-  throw new Error('SUPABASE_URL is not set in backend/.env');
+function isValidUrl(url) {
+  return url && url.startsWith('http');
 }
 
-const key = serviceRoleKey || anonKey;
-if (!key) {
-  throw new Error('Neither SUPABASE_SERVICE_ROLE_KEY nor SUPABASE_ANON_KEY is set in backend/.env');
-}
+let supabase = null;
 
-const supabase = createClient(supabaseUrl, key, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+if (isValidUrl(supabaseUrl) && (serviceRoleKey || anonKey)) {
+  const key = serviceRoleKey || anonKey;
+  supabase = createClient(supabaseUrl, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  });
+}
 
 function usesServiceRole() {
   return Boolean(serviceRoleKey);
 }
 
 async function testSupabaseConnection() {
+  if (!supabase) {
+    return {
+      ok: false,
+      url: supabaseUrl,
+      mode: usesServiceRole() ? 'service_role' : 'anon',
+      error: 'Supabase not configured'
+    };
+  }
   try {
     const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
     if (error) throw error;

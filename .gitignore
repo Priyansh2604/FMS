@@ -8,3 +8,6 @@ build/
 *.log
 /docs/
 /testscript
+
+package-lock.json
+package.json

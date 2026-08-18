@@ -108,10 +108,14 @@ export async function loginUser(email, password) {
 
 export async function registerUser({ name, email, password, currency = 'INR' }) {
   const normalizedEmail = email.trim().toLowerCase();
-  const { data, error } = await supabase.auth.signUp({
+  
+  // Store password temporarily for setting after OTP verification
+  try { sessionStorage.setItem('aura_pending_password', password); } catch {}
+
+  const { data, error } = await supabase.auth.signInWithOtp({
     email: normalizedEmail,
-    password,
     options: {
+      shouldCreateUser: true,
       data: {
         full_name: name.trim(),
         tier: 'Free Member',
@@ -123,24 +127,14 @@ export async function registerUser({ name, email, password, currency = 'INR' }) 
 
   if (error) {
     const msg = (error.message || '').toLowerCase();
-    if (msg.includes('already registered') || msg.includes('already been registered')) {
+    if (msg.includes('already registered') || msg.includes('already been registered') || msg.includes('user already exists')) {
       return { ok: false, alreadyRegistered: true, error: error.message };
     }
     return { ok: false, error: error.message };
   }
 
-  // No session returned => email confirmation (OTP) required before sign-in.
-  if (data.user && !data.session) {
-    PendingStore.set(normalizedEmail);
-    return { ok: true, pending: true, email: normalizedEmail };
-  }
-
-  if (data.session) {
-    setSession(data.user);
-    return { ok: true, user: data.user };
-  }
-
-  return { ok: false, error: 'Registration failed. Please try again.' };
+  PendingStore.set(normalizedEmail);
+  return { ok: true, pending: true, email: normalizedEmail };
 }
 
 export async function verifySignupOtp(email, token) {
@@ -155,6 +149,17 @@ export async function verifySignupOtp(email, token) {
   }
 
   if (data.user) {
+    // Set password after successful OTP verification
+    const pendingPassword = sessionStorage.getItem('aura_pending_password');
+    if (pendingPassword) {
+      try {
+        await supabase.auth.updateUser({ password: pendingPassword });
+      } catch (e) {
+        console.warn('Failed to set password after OTP verification:', e);
+      }
+      try { sessionStorage.removeItem('aura_pending_password'); } catch {}
+    }
+    
     setSession(data.user);
     PendingStore.clear();
     return { ok: true, user: data.user };
@@ -165,7 +170,7 @@ export async function verifySignupOtp(email, token) {
 
 export async function resendSignupOtp(email) {
   const { error } = await supabase.auth.resend({
-    type: 'signup',
+    type: 'email',
     email: email.trim().toLowerCase()
   });
 
@@ -225,6 +230,20 @@ export function updateCurrentUserCurrency(currency) {
 export async function signOut() {
   await supabase.auth.signOut();
   localStorage.removeItem(SESSION_KEY);
+}
+
+export async function signInWithGoogle() {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  });
+  return { data, error };
 }
 
 export async function resetPassword(email) {

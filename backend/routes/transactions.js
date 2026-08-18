@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const mongoose = require('mongoose');
-const Transaction = require('../models/Transaction');
+const { supabase } = require('../supabase');
 
-// Demo fallback data used when MongoDB isn't connected
+// Demo fallback data used when Supabase isn't configured
 const demoTransactions = [
   {
-    _id: 'local-1',
+    id: 'local-1',
     user: { name: 'Demo User', email: 'demo@example.com' },
     type: 'income',
     category: 'Salary',
@@ -15,7 +14,7 @@ const demoTransactions = [
     notes: 'Demo deposit'
   },
   {
-    _id: 'local-2',
+    id: 'local-2',
     user: { name: 'Demo User', email: 'demo@example.com' },
     type: 'expense',
     category: 'Groceries',
@@ -25,29 +24,43 @@ const demoTransactions = [
   }
 ];
 
+function useDemo() {
+  return !supabase;
+}
+
 router.get('/', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
+    if (useDemo()) {
       return res.json(demoTransactions);
     }
 
-    const transactions = await Transaction.find().populate('user', 'name email');
-    res.json(transactions);
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*, users(name, email)')
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    res.json(data || []);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to load transactions' });
+    res.status(500).json({ error: 'Failed to load transactions', details: error.message });
   }
 });
 
 router.post('/', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
-      const mock = Object.assign({ _id: `local-${Date.now()}`, date: new Date().toISOString() }, req.body);
+    if (useDemo()) {
+      const mock = Object.assign({ id: `local-${Date.now()}`, date: new Date().toISOString() }, req.body);
       return res.status(201).json(mock);
     }
 
-    const transaction = new Transaction(req.body);
-    const saved = await transaction.save();
-    res.status(201).json(saved);
+    const { data, error } = await supabase
+      .from('transactions')
+      .insert([req.body])
+      .select()
+      .single();
+
+    if (error) throw error;
+    res.status(201).json(data);
   } catch (error) {
     res.status(400).json({ error: 'Failed to create transaction', details: error.message });
   }
@@ -55,16 +68,16 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    if (mongoose.connection.readyState !== 1) {
+    if (useDemo()) {
       return res.json({ success: true, deletedId: req.params.id });
     }
 
-    const deletedTransaction = await Transaction.findByIdAndDelete(req.params.id);
+    const { error } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('id', req.params.id);
 
-    if (!deletedTransaction) {
-      return res.status(404).json({ error: 'Transaction not found' });
-    }
-
+    if (error) throw error;
     res.json({ success: true, deletedId: req.params.id });
   } catch (error) {
     res.status(400).json({ error: 'Failed to delete transaction', details: error.message });

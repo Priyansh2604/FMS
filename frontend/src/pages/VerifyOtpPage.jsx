@@ -34,6 +34,7 @@ export default function VerifyOtpPage() {
 
   useEffect(() => {
     if (getCurrentUser()) navigate("/", { replace: true });
+    return () => { try { sessionStorage.removeItem('aura_pending_password'); } catch {} };
   }, [navigate]);
 
   const code = () => digits.join("");
@@ -95,6 +96,9 @@ export default function VerifyOtpPage() {
       setTimeout(() => navigate("/", { replace: true }), 2800);
       return;
     }
+
+    // Clear pending password on verification error so user can retry signup
+    try { sessionStorage.removeItem('aura_pending_password'); } catch {}
 
     submittedRef.current = false;
     setStatus("error");

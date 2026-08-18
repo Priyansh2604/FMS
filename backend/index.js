@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
@@ -31,29 +30,7 @@ if (require('fs').existsSync(frontendDist)) {
 }
 
 const PORT = Number(process.env.PORT) || 5000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/fms';
 
-const startServer = (port) => {
-  app.listen(port, () => {
-    console.log(`Server running on port ${port}`);
-  }).on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.warn(`Port ${port} is busy. Please stop the other process and try again.`);
-      process.exit(1);
-    } else {
-      throw error;
-    }
-  });
-};
-
-mongoose.connect(MONGO_URI, {
-  serverSelectionTimeoutMS: 5000
-})
-  .then(() => {
-    console.log('MongoDB connected');
-    startServer(PORT);
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    startServer(PORT);
-  });
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
