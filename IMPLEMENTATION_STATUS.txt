@@ -1,0 +1,260 @@
+================================================================================
+AURA FINANCE — AI EXPENSE AUTOMATION IMPLEMENTATION STATUS
+================================================================================
+
+Generated: 19 Aug 2026
+Branch:    main
+Commit:    pending (ai-service + proxy + frontend changes)
+
+================================================================================
+ARCHITECTURE (Current)
+================================================================================
+
+  React Frontend  :3000 (dev) → proxied via Vite
+        |
+        v
+  Node/Express    :5000  (API gateway + auth + static hosting)
+        |
+        v
+  FastAPI         :8000  (OCR + LLM + validation + Supabase)
+        |
+        v
+  Supabase        (PostgreSQL + Auth)
+  OpenRouter      (LLM — GPT-4o-mini)
+
+================================================================================
+MILESTONE COMPLETION STATUS
+================================================================================
+
+  MILESTONE  1  — Inspect Existing Architecture            ✅ DONE
+  MILESTONE  2  — Create FastAPI AI Service                 ✅ DONE
+  MILESTONE  3  — Environment Configuration                 ✅ DONE
+  MILESTONE  4  — Supabase Expense Schema                   ✅ DONE  (migration in ai-service/migrations/)
+  MILESTONE  5  — OCR Service (Tesseract)                   ✅ DONE
+  MILESTONE  6  — Structured Expense Schema (Pydantic)      ✅ DONE
+  MILESTONE  7  — LLM Service (OpenRouter/TokenRouter)      ✅ DONE
+  MILESTONE  8  — Automatic Expense Mapping                 ✅ DONE
+  MILESTONE  9  — Expense Processing Pipeline               ✅ DONE
+  MILESTONE 10  — FastAPI Expense Endpoints                 ✅ DONE
+  MILESTONE 11  — Node.js Integration (proxy to FastAPI)    ✅ DONE
+  MILESTONE 12  — Expense Listing in Frontend               ✅ DONE
+  MILESTONE 13  — Upload Receipt UI (TransactionsPage)      ✅ DONE
+  MILESTONE 14  — Duplicate Detection                       ✅ DONE
+  MILESTONE 15  — Validation and Safety                     ✅ DONE
+  MILESTONE 16  — LLM Failure Handling                      ⚠️  PARTIAL
+  MILESTONE 17  — OCR/LLM Confidence System                 ✅ DONE
+  MILESTONE 18  — Batch Processing                          ✅ DONE
+  MILESTONE 19  — Testing                                   ❌ NOT DONE
+  MILESTONE 20  — Logging and Monitoring                    ✅ DONE
+  MILESTONE 21  — CORS and Service Communication            ✅ DONE
+  MILESTONE 22  — Startup Documentation (README)            ❌ NOT DONE
+  MILESTONE 23  — Final E2E Test                            ❌ NOT DONE
+
+  Score: 19/23 complete, 1 partial, 3 remaining
+
+================================================================================
+FILES CREATED (this session)
+================================================================================
+
+  ai-service/
+  ai-service/.env.example
+  ai-service/.env
+  ai-service/requirements.txt
+  ai-service/app/__init__.py
+  ai-service/app/main.py
+  ai-service/app/config.py
+  ai-service/app/api/__init__.py
+  ai-service/app/api/routes/__init__.py
+  ai-service/app/api/routes/health.py
+  ai-service/app/api/routes/expenses.py
+  ai-service/app/services/__init__.py
+  ai-service/app/services/ocr_service.py
+  ai-service/app/services/llm_service.py
+  ai-service/app/services/expense_service.py
+  ai-service/app/services/supabase_service.py
+  ai-service/app/schemas/__init__.py
+  ai-service/app/schemas/expense.py
+  ai-service/app/utils/__init__.py
+  ai-service/app/utils/file_utils.py
+  ai-service/tests/__init__.py
+  ai-service/migrations/001_create_expenses.sql
+  backend/routes/expenses.js
+
+================================================================================
+FILES MODIFIED (this session)
+================================================================================
+
+  .gitignore                  (added .venv, __pycache__, ai-service/.env)
+  backend/index.js            (mounted expense proxy routes)
+  backend/package.json        (added multer, node-fetch, form-data deps)
+  backend/package-lock.json   (lockfile update)
+  frontend/src/pages/TransactionsPage.jsx  (full expense UI with receipt upload)
+
+================================================================================
+WHAT EACH REMAINING MILESTONE NEEDS
+================================================================================
+
+--- MILESTONE 16: LLM Failure Handling (PARTIAL) ---
+
+Current state: JSON parse errors are caught. Generic exceptions return
+"An unexpected error occurred." But specific failure modes need
+structured error codes.
+
+What to add in ai-service/app/api/routes/expenses.py:
+
+  - Catch httpx.TimeoutException     → error code "LLM_TIMEOUT"
+  - Catch httpx.HTTPStatusError 429  → error code "LLM_RATE_LIMIT"
+  - Catch httpx.HTTPStatusError 401  → error code "LLM_AUTH_FAILED"
+  - Catch httpx.HTTPStatusError 5xx  → error code "LLM_UNAVAILABLE"
+  - Catch httpx.ConnectError         → error code "LLM_NETWORK_ERROR"
+  - Catch ValueError (empty content) → error code "LLM_EMPTY_RESPONSE"
+
+In ai-service/app/services/llm_service.py _call_api():
+  - Wrap the httpx call with specific exception types
+  - Log detailed error on backend, return safe message to frontend
+
+In ai-service/app/services/expense_service.py:
+  - Catch extraction failures and return ProcessedExpense
+    with success=False + specific error code
+
+--- MILESTONE 19: Testing ---
+
+Create files under ai-service/tests/:
+
+  ai-service/tests/test_schemas.py
+    - Test ExpenseExtraction validation
+    - Test normalize_category with aliases
+    - Test invalid categories map to "Other"
+    - Test amount >= 0 constraint
+    - Test confidence 0.0-1.0 range
+
+  ai-service/tests/test_ocr_service.py
+    - Test extract_text_from_file with mock image
+    - Test PDF vs image routing
+
+  ai-service/tests/test_llm_service.py
+    - Test _parse_response with valid JSON
+    - Test _parse_response with markdown-wrapped JSON
+    - Test _parse_response with invalid JSON raises ValueError
+    - Test _parse_response with missing fields uses defaults
+    - Mock httpx calls for API failure scenarios
+
+  ai-service/tests/test_expense_service.py
+    - Test calculate_confidence weights
+    - Test process_receipt end-to-end with mocks
+    - Test temp file cleanup on failure
+
+  ai-service/tests/test_routes.py
+    - Use FastAPI TestClient
+    - Test GET /health
+    - Test POST /api/expenses/process without file → 400
+    - Test POST /api/expenses/process without user_id → 422
+    - Test GET /api/expenses without user_id → 422
+
+--- MILESTONE 22: README ---
+
+Create ai-service/README.md with:
+
+  # AURA Finance AI Service
+
+  ## Prerequisites
+  - Python 3.11+
+  - Tesseract OCR installed on system
+  - Supabase project with expenses table
+
+  ## Setup
+  python -m venv .venv
+  .venv\Scripts\Activate.ps1          # Windows
+  pip install -r requirements.txt
+  cp .env.example .env                # then fill in secrets
+
+  ## Run
+  uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+  ## API Docs
+  http://localhost:8000/docs
+
+  ## Endpoints
+  GET  /health
+  POST /api/expenses/process
+  POST /api/expenses/process-batch
+  GET  /api/expenses
+
+  ## Environment Variables
+  (list all from .env.example)
+
+--- MILESTONE 23: E2E Test ---
+
+Manual verification checklist (requires both servers + Supabase running):
+
+  1. Start FastAPI:  cd ai-service && uvicorn app.main:app --reload --port 8000
+  2. Start Node:     cd backend && npm run dev
+  3. Start Frontend: cd frontend && npm run dev
+  4. Test GET /health on :8000
+  5. Login to app at :3000
+  6. Navigate to /transactions
+  7. Click "Add Transaction" → "Upload Receipt" tab
+  8. Upload a real receipt image
+  9. Verify processing steps appear
+  10. Verify expense shows in table with correct merchant/amount/category
+  11. Verify duplicate warning on re-upload of same receipt
+  12. Verify page refresh still shows the expense (Supabase persistence)
+  13. Test batch upload via API directly:
+       curl -X POST http://localhost:5000/api/expenses/process-batch \
+         -F "files=@receipt1.jpg" -F "files=@receipt2.png" \
+         -F "user_id=<uuid>"
+  14. Test category filter in expense table
+  15. Test pagination with >20 expenses
+
+================================================================================
+KEY DESIGN DECISIONS
+================================================================================
+
+  - FastAPI uses service_role key (bypasses RLS) for DB operations
+  - Node.js acts purely as API gateway, no business logic
+  - user_id passed as query param (auth via Supabase client-side session)
+  - OCR: Tesseract via pytesseract + pdf2image
+  - LLM: OpenRouter (openai/gpt-4o-mini), provider-abstracted
+  - Temp files cleaned in finally block (never leaked)
+  - Duplicate detection: unique index on (user_id, merchant, amount, expense_date)
+  - Category normalization: exact match → alias map → fuzzy substring → "Other"
+  - Confidence: weighted score (OCR 20%, LLM 30%, amount 20%, date 15%, merchant 15%)
+
+================================================================================
+CONTINUITY PROMPT (copy-paste into next session)
+================================================================================
+
+Read IMPLEMENTATION_STATUS.txt in the project root.
+
+Remaining work:
+
+  1. MILESTONE 16 — Harden LLM failure handling:
+     - In ai-service/app/api/routes/expenses.py, catch specific httpx
+       exceptions (TimeoutException, HTTPStatusError 429/401/5xx,
+       ConnectError) and return structured error codes like
+       LLM_TIMEOUT, LLM_RATE_LIMIT, LLM_UNAVAILABLE, LLM_AUTH_FAILED.
+     - In ai-service/app/services/llm_service.py _call_api(), add
+       try/except around the httpx.post() call for each exception type.
+     - In ai-service/app/services/expense_service.py, ensure
+       extraction failures produce clear error messages.
+
+  2. MILESTONE 19 — Write tests:
+     - Create ai-service/tests/test_schemas.py (Pydantic model tests)
+     - Create ai-service/tests/test_ocr_service.py (OCR with mocks)
+     - Create ai-service/tests/test_llm_service.py (parse + API mocks)
+     - Create ai-service/tests/test_expense_service.py (pipeline tests)
+     - Create ai-service/tests/test_routes.py (FastAPI TestClient)
+     - Run: cd ai-service && python -m pytest tests/ -v
+
+  3. MILESTONE 22 — Create ai-service/README.md with setup instructions,
+     prerequisites, environment variables, run commands, and API docs.
+
+  4. MILESTONE 23 — Run E2E verification:
+     - Start all 3 services (FastAPI :8000, Node :5000, React :3000)
+     - Login → upload receipt → verify expense appears in table
+     - Verify persistence across page refresh
+     - Verify duplicate detection warning
+
+  After completing, push all changes to main.
+
+================================================================================
