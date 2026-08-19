@@ -33,7 +33,7 @@ export default function VerifyOtpPage() {
   }, [resendIn]);
 
   useEffect(() => {
-    if (getCurrentUser()) navigate("/", { replace: true });
+    if (getCurrentUser()) navigate("/dashboard", { replace: true });
     return () => { try { sessionStorage.removeItem('aura_pending_password'); } catch {} };
   }, [navigate]);
 
@@ -93,7 +93,7 @@ export default function VerifyOtpPage() {
     const res = await verifySignupOtp(email, token);
     if (res.ok) {
       setStatus("success");
-      setTimeout(() => navigate("/", { replace: true }), 2800);
+      setTimeout(() => navigate("/dashboard", { replace: true }), 2800);
       return;
     }
 

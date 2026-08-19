@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
-import { registerUser, getCurrentUser, initializeAuth, signInWithGoogle } from "../auth";
+import { Link, useNavigate } from "react-router-dom";
+import { registerUser, signInWithGoogle } from "../auth";
 import { useEffect } from "react";
 
 export default function SignUpPage() {
@@ -18,12 +18,9 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    initializeAuth();
     try { sessionStorage.removeItem('aura_pending_password'); } catch {}
     return () => { try { sessionStorage.removeItem('aura_pending_password'); } catch {} };
   }, []);
-
-  if (getCurrentUser()) return <Navigate to="/" replace />;
 
   const update = (key) => (e) => {
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -70,7 +67,7 @@ export default function SignUpPage() {
       navigate(`/verify?email=${encodeURIComponent(res.email)}`);
       return;
     }
-    navigate("/");
+    navigate("/dashboard");
   };
 
   const inputClass = "w-full bg-transparent border-b border-outline-variant focus:border-primary pl-8 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none";

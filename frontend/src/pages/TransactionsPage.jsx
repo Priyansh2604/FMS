@@ -45,6 +45,24 @@ function getConfidenceBadge(conf) {
   return { label: "Low", color: "text-rose-700 bg-rose-50" };
 }
 
+function localTransactionsKey(userId) {
+  return `aura_transactions_${userId}`;
+}
+
+function getLocalTransactions(userId) {
+  try {
+    return JSON.parse(localStorage.getItem(localTransactionsKey(userId)) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalTransaction(userId, transaction) {
+  const transactions = [transaction, ...getLocalTransactions(userId)];
+  localStorage.setItem(localTransactionsKey(userId), JSON.stringify(transactions));
+  return transactions;
+}
+
 export default function TransactionsPage() {
   const user = getCurrentUser();
   const userId = user?.id || "";
@@ -71,6 +89,8 @@ export default function TransactionsPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState(null);
   const [uploadError, setUploadError] = useState("");
+  const [savingManual, setSavingManual] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const fileInputRef = useRef(null);
 
   const fetchExpenses = useCallback(async () => {
@@ -79,11 +99,31 @@ export default function TransactionsPage() {
     try {
       const params = new URLSearchParams({ user_id: userId, page: String(page), limit: "20" });
       if (filterCategory) params.append("category", filterCategory);
-      const res = await fetch(`${apiBaseUrl}/api/expenses?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setExpenses(data.expenses);
-        setTotal(data.total);
+      const [expenseRes, transactionRes] = await Promise.all([
+        fetch(`${apiBaseUrl}/api/expenses?${params}`),
+        fetch(`${apiBaseUrl}/api/transactions?user_id=${encodeURIComponent(userId)}`),
+      ]);
+      const expenseData = await expenseRes.json();
+      const transactionData = await transactionRes.json();
+      const manualTransactions = Array.isArray(transactionData)
+        ? transactionData.map((tx) => ({
+            ...tx,
+            amount: tx.type === "income" ? Math.abs(Number(tx.amount)) : -Math.abs(Number(tx.amount)),
+            expense_date: tx.date,
+            source: "manual",
+          }))
+        : getLocalTransactions(userId).map((tx) => ({
+            ...tx,
+            amount: tx.type === "income" ? Math.abs(Number(tx.amount)) : -Math.abs(Number(tx.amount)),
+            expense_date: tx.date,
+            source: "manual",
+          }));
+      const storedTransactions = Array.isArray(transactionData) ? manualTransactions : getLocalTransactions(userId);
+      if (expenseData.success || storedTransactions.length > 0) {
+        setExpenses([...manualTransactions, ...(expenseData.expenses || [])].sort((a, b) =>
+          new Date(b.created_at || b.expense_date || b.date) - new Date(a.created_at || a.expense_date || a.date)
+        ));
+        setTotal((expenseData.total || 0) + storedTransactions.length);
       }
     } catch (err) {
       console.error("Failed to fetch expenses:", err);
@@ -104,22 +144,56 @@ export default function TransactionsPage() {
 
   const handleManualSubmit = async (e) => {
     e.preventDefault();
-    if (!merchantName || !amount || !date || !category) return;
+    setUploadError("");
+    if (!userId) {
+      setUploadError("Please log in before adding a transaction.");
+      return;
+    }
+    if (!merchantName || !amount || !date || !category) {
+      setUploadError("Please complete the description, amount, date, and category.");
+      return;
+    }
     const parsedAmount = parseFloat(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setUploadError("Enter an amount greater than zero.");
+      return;
+    }
     const isIncome = transactionType === "income";
 
-    const newTx = {
-      id: `local-${Date.now()}`,
-      merchant: merchantName,
-      category,
-      amount: isIncome ? Math.abs(parsedAmount) : -Math.abs(parsedAmount),
-      expense_date: date,
-      source: "manual",
-      created_at: new Date().toISOString(),
-    };
-    setExpenses((prev) => [newTx, ...prev]);
-    setModalOpen(false);
-    setMerchantName(""); setAmount(""); setDate(""); setCategory(""); setNotes("");
+    setSavingManual(true);
+    try {
+      const res = await fetch(`${apiBaseUrl}/api/transactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: userId, merchant: merchantName, type: isIncome ? "income" : "expense",
+          amount: parsedAmount, date, category, notes,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.details || data.error || "Failed to save transaction");
+      await fetchExpenses();
+      setModalOpen(false);
+      setMerchantName(""); setAmount(""); setDate(""); setCategory(""); setNotes("");
+    } catch (err) {
+      const localTransaction = {
+        id: `local-${Date.now()}`,
+        user_id: userId,
+        merchant: merchantName.trim(),
+        type: isIncome ? "income" : "expense",
+        category,
+        amount: parsedAmount,
+        date,
+        notes: notes || null,
+        created_at: new Date().toISOString(),
+      };
+      saveLocalTransaction(userId, localTransaction);
+      await fetchExpenses();
+      setModalOpen(false);
+      setMerchantName(""); setAmount(""); setDate(""); setCategory(""); setNotes("");
+    } finally {
+      setSavingManual(false);
+    }
   };
 
   const handleUpload = async () => {
@@ -153,9 +227,40 @@ export default function TransactionsPage() {
     }
   };
 
+  const handleDeleteTransaction = async (transaction) => {
+    if (transaction.source !== "manual" || deletingId) return;
+    if (!window.confirm(`Delete ${transaction.merchant || "this transaction"}?`)) return;
+
+    setDeletingId(transaction.id);
+    setUploadError("");
+    try {
+      if (String(transaction.id).startsWith("local-")) {
+        const remaining = getLocalTransactions(userId).filter((item) => item.id !== transaction.id);
+        localStorage.setItem(localTransactionsKey(userId), JSON.stringify(remaining));
+      } else {
+        const response = await fetch(`${apiBaseUrl}/api/transactions/${encodeURIComponent(transaction.id)}?user_id=${encodeURIComponent(userId)}`, {
+          method: "DELETE",
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.details || data.error || "Could not delete transaction");
+      }
+
+      setExpenses((current) => current.filter((item) => item.id !== transaction.id));
+      setTotal((current) => Math.max(0, current - 1));
+    } catch (error) {
+      setUploadError(error.message || "Could not delete transaction");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const totalOutflow = expenses
-    .filter((e) => e.amount > 0 && e.source === "receipt")
+    .filter((e) => e.source === "receipt" ? Number(e.amount) > 0 : Number(e.amount) < 0)
+    .reduce((sum, e) => sum + Math.abs(Number(e.amount)), 0);
+  const totalInflow = expenses
+    .filter((e) => e.source === "manual" && Number(e.amount) > 0)
     .reduce((sum, e) => sum + Number(e.amount), 0);
+  const remainingAmount = totalInflow - totalOutflow;
 
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto">
@@ -175,10 +280,20 @@ export default function TransactionsPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-12">
         <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Expenses</span>
           <span className="font-display text-headline-lg text-primary">{total}</span>
+        </div>
+        <div className="editorial-card p-6 flex flex-col gap-2">
+          <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Income / Inflow</span>
+          <span className="font-display text-headline-lg text-emerald-700">{formatCurrency(totalInflow)}</span>
+        </div>
+        <div className="editorial-card p-6 flex flex-col gap-2">
+          <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Remaining Amount</span>
+          <span className={`font-display text-headline-lg ${remainingAmount >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
+            {formatCurrency(remainingAmount)}
+          </span>
         </div>
         <div className="editorial-card p-6 flex flex-col gap-2">
           <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Total Spent</span>
@@ -216,13 +331,14 @@ export default function TransactionsPage() {
               <th className="px-6 py-4 font-semibold">Date</th>
               <th className="px-6 py-4 font-semibold">Amount</th>
               <th className="px-6 py-4 font-semibold">Source</th>
+              <th className="px-6 py-4 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center font-sans text-on-surface-variant">Loading...</td></tr>
+              <tr><td colSpan={6} className="px-6 py-12 text-center font-sans text-on-surface-variant">Loading...</td></tr>
             ) : filteredExpenses.length === 0 ? (
-              <tr><td colSpan={5} className="px-6 py-12 text-center">
+              <tr><td colSpan={6} className="px-6 py-12 text-center">
                 <span className="material-symbols-outlined text-[40px] text-outline block mb-3">receipt_long</span>
                 <p className="font-sans text-body-md text-on-surface-variant">No expenses yet. Upload a receipt to get started.</p>
               </td></tr>
@@ -259,6 +375,20 @@ export default function TransactionsPage() {
                       </div>
                     ) : (
                       <span className="text-label-sm text-on-surface-variant">Manual</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    {tx.source === "manual" && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTransaction(tx)}
+                        disabled={deletingId === tx.id}
+                        className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                        title="Delete transaction"
+                        aria-label={`Delete ${tx.merchant || "transaction"}`}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
                     )}
                   </td>
                 </tr>
@@ -468,9 +598,15 @@ export default function TransactionsPage() {
                   className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary placeholder:text-outline transition-colors outline-none resize-none"
                   placeholder="Add details..." rows="2" />
               </div>
+              {uploadError && (
+                <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 flex items-start gap-3">
+                  <span className="material-symbols-outlined text-[20px] text-rose-700">error</span>
+                  <p className="font-sans text-body-sm text-rose-800">{uploadError}</p>
+                </div>
+              )}
               <div className="pt-6 border-t border-outline-variant/30 flex gap-4 mt-auto">
                 <button type="button" onClick={() => setModalOpen(false)} className="btn btn-outline flex-1">Cancel</button>
-                <button type="submit" className="btn btn-primary flex-1">Add</button>
+                <button type="submit" disabled={savingManual} className="btn btn-primary flex-1 disabled:opacity-50">{savingManual ? "Saving..." : "Add"}</button>
               </div>
             </form>
           )}

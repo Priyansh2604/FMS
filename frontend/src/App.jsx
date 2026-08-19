@@ -11,20 +11,33 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
-import { getCurrentUser } from "./auth";
+import { getCurrentUser, initializeAuth, subscribeToAuthChanges } from "./auth";
 
-function RequireAuth() {
+function RequireAuth({ ready }) {
+  if (!ready) {
+    return <div className="min-h-screen bg-primary flex items-center justify-center text-on-primary font-sans">Checking your session...</div>;
+  }
   return getCurrentUser() ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
-  const [tick, setTick] = useState(0);
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
-    const handler = () => setTick((t) => t + 1);
+    let mounted = true;
+    initializeAuth().finally(() => {
+      if (mounted) setAuthReady(true);
+    });
+
+    const unsubscribe = subscribeToAuthChanges(() => {
+      if (mounted) setAuthReady(true);
+    });
+    const handler = () => setAuthReady(true);
     window.addEventListener('aura:session-changed', handler);
     window.addEventListener('aura:fx-updated', handler);
     return () => {
+      mounted = false;
+      unsubscribe();
       window.removeEventListener('aura:session-changed', handler);
       window.removeEventListener('aura:fx-updated', handler);
     };
@@ -37,8 +50,9 @@ export default function App() {
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyOtpPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
+        <Route index element={<Navigate to="/login" replace />} />
 
-        <Route element={<RequireAuth />}>
+        <Route path="/dashboard" element={<RequireAuth ready={authReady} />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
@@ -49,7 +63,7 @@ export default function App() {
           </Route>
         </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

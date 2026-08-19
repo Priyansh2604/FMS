@@ -12,8 +12,10 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const transactionRoutes = require('./routes/transactions');
+const investmentRoutes = require('./routes/investments');
 const expenseRoutes = require('./routes/expenses');
 app.use('/api/transactions', transactionRoutes);
+app.use('/api/investments', investmentRoutes);
 app.use('/api/expenses', expenseRoutes);
 
 // Serve frontend static files when built (single link)

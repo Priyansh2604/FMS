@@ -21,12 +21,12 @@ export default function Sidebar({ onCloseMobile }) {
   };
 
   const navigation = [
-    { name: "Dashboard", path: "/", icon: "dashboard" },
-    { name: "Transactions", path: "/transactions", icon: "receipt_long" },
-    { name: "Investments", path: "/invest", icon: "candlestick_chart" },
-    { name: "AI Advisor", path: "/advisor", icon: "smart_toy" },
-    { name: "Reports", path: "/reports", icon: "analytics" },
-    { name: "Settings", path: "/settings", icon: "settings" },
+    { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
+    { name: "Transactions", path: "/dashboard/transactions", icon: "receipt_long" },
+    { name: "Investments", path: "/dashboard/invest", icon: "candlestick_chart" },
+    { name: "AI Advisor", path: "/dashboard/advisor", icon: "smart_toy" },
+    { name: "Reports", path: "/dashboard/reports", icon: "analytics" },
+    { name: "Settings", path: "/dashboard/settings", icon: "settings" },
   ];
 
   return (

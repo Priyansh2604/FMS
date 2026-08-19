@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
-import { loginUser, getCurrentUser, initializeAuth, signInWithGoogle } from "../auth";
-import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { loginUser, signInWithGoogle } from "../auth";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -10,12 +9,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    initializeAuth();
-  }, []);
-
-  if (getCurrentUser()) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -31,7 +24,7 @@ export default function LoginPage() {
       setError(res.error);
       return;
     }
-    navigate("/");
+    navigate("/dashboard");
   };
 
   return (
@@ -181,9 +174,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-center font-sans text-label-sm text-on-primary/40 mt-6">
-          Aura AI can make mistakes. Consider verifying important financial data.
-        </p>
       </div>
     </div>
   );

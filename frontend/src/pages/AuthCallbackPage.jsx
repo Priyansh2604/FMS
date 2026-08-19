@@ -29,7 +29,7 @@ export default function AuthCallbackPage() {
 
       await initializeAuth();
       if (getCurrentUser()) {
-        navigate("/", { replace: true });
+        navigate("/dashboard", { replace: true });
       } else {
         navigate("/login", { replace: true });
       }

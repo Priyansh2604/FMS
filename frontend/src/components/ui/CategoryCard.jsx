@@ -122,8 +122,8 @@ export default function CategoryCard({
           {/* YTD Growth badge */}
           {trend && (
             <div className="flex items-center gap-1.5 mt-2.5">
-              <span className="material-symbols-outlined text-[18px] text-emerald-700 font-bold">
-                trending_up
+              <span className={`material-symbols-outlined text-[18px] font-bold ${trend.startsWith("-") ? "text-rose-700" : "text-emerald-700"}`}>
+                {trend.startsWith("-") ? "trending_down" : "trending_up"}
               </span>
               <span className="font-sans text-label-sm text-on-surface-variant font-semibold">
                 {trend}

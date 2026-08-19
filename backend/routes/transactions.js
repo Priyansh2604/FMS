@@ -2,43 +2,45 @@ const express = require('express');
 const router = express.Router();
 const { supabase } = require('../supabase');
 
-// Demo fallback data used when Supabase isn't configured
-const demoTransactions = [
-  {
-    id: 'local-1',
-    user: { name: 'Demo User', email: 'demo@example.com' },
-    type: 'income',
-    category: 'Salary',
-    amount: 2500,
-    date: new Date().toISOString(),
-    notes: 'Demo deposit'
-  },
-  {
-    id: 'local-2',
-    user: { name: 'Demo User', email: 'demo@example.com' },
-    type: 'expense',
-    category: 'Groceries',
-    amount: 120.5,
-    date: new Date().toISOString(),
-    notes: 'Demo expense'
+function requireSupabase(res) {
+  if (!supabase) {
+    res.status(503).json({ error: 'Supabase is not configured' });
+    return false;
   }
-];
+  return true;
+}
 
-function useDemo() {
-  return !supabase;
+function isMissingTransactionsTable(error) {
+  return error?.code === 'PGRST205' || /could not find the table .*transactions/i.test(error?.message || '');
+}
+
+function mapExpenseToTransaction(expense) {
+  const isIncome = expense.source === 'manual_income';
+  return {
+    id: expense.id,
+    user_id: expense.user_id,
+    merchant: expense.merchant,
+    type: isIncome ? 'income' : 'expense',
+    category: expense.category,
+    amount: Math.abs(Number(expense.amount)),
+    date: expense.expense_date,
+    notes: expense.description || null,
+    created_at: expense.created_at,
+  };
 }
 
 router.get('/', async (req, res) => {
   try {
-    if (useDemo()) {
-      return res.json(demoTransactions);
+    const userId = req.query.user_id;
+    if (!userId) return res.status(400).json({ error: 'user_id is required' });
+    if (!requireSupabase(res)) return;
+    const { data, error } = await supabase.from('transactions').select('*').eq('user_id', userId).order('date', { ascending: false });
+
+    if (error && isMissingTransactionsTable(error)) {
+      const fallback = await supabase.from('expenses').select('*').eq('user_id', userId).in('source', ['manual', 'manual_income']).order('expense_date', { ascending: false });
+      if (fallback.error) throw fallback.error;
+      return res.json((fallback.data || []).map(mapExpenseToTransaction));
     }
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*, users(name, email)')
-      .order('date', { ascending: false });
-
     if (error) throw error;
     res.json(data || []);
   } catch (error) {
@@ -48,17 +50,31 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
   try {
-    if (useDemo()) {
-      const mock = Object.assign({ id: `local-${Date.now()}`, date: new Date().toISOString() }, req.body);
-      return res.status(201).json(mock);
+    const { user_id: userId, merchant, type, category, amount, date, notes } = req.body;
+    if (!userId || !merchant || !type || !category || amount == null || !date) {
+      return res.status(400).json({ error: 'user_id, merchant, type, category, amount, and date are required' });
     }
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .insert([req.body])
+    if (!requireSupabase(res)) return;
+    const { data, error } = await supabase.from('transactions').insert({
+      user_id: userId, merchant: merchant.trim(), type, category,
+      amount: Math.abs(Number(amount)), date, notes: notes || null
+    })
       .select()
       .single();
 
+    if (error && isMissingTransactionsTable(error)) {
+      const fallback = await supabase.from('expenses').insert({
+        user_id: userId,
+        merchant: merchant.trim(),
+        category,
+        amount: Math.abs(Number(amount)),
+        expense_date: date,
+        description: notes || null,
+        source: type === 'income' ? 'manual_income' : 'manual',
+      }).select().single();
+      if (fallback.error) throw fallback.error;
+      return res.status(201).json(mapExpenseToTransaction(fallback.data));
+    }
     if (error) throw error;
     res.status(201).json(data);
   } catch (error) {
@@ -68,15 +84,16 @@ router.post('/', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   try {
-    if (useDemo()) {
+    const userId = req.query.user_id;
+    if (!userId) return res.status(400).json({ error: 'user_id is required' });
+    if (!requireSupabase(res)) return;
+    const { error } = await supabase.from('transactions').delete().eq('id', req.params.id).eq('user_id', userId);
+
+    if (error && isMissingTransactionsTable(error)) {
+      const fallback = await supabase.from('expenses').delete().eq('id', req.params.id).eq('user_id', userId).in('source', ['manual', 'manual_income']);
+      if (fallback.error) throw fallback.error;
       return res.json({ success: true, deletedId: req.params.id });
     }
-
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', req.params.id);
-
     if (error) throw error;
     res.json({ success: true, deletedId: req.params.id });
   } catch (error) {

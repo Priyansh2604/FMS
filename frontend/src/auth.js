@@ -82,6 +82,10 @@ function setSession(user) {
   );
 }
 
+function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
 export async function loginUser(email, password) {
   const normalizedEmail = email.trim().toLowerCase();
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -229,7 +233,8 @@ export function updateCurrentUserCurrency(currency) {
 
 export async function signOut() {
   await supabase.auth.signOut();
-  localStorage.removeItem(SESSION_KEY);
+  clearSession();
+  window.dispatchEvent(new CustomEvent('aura:session-changed', { detail: null }));
 }
 
 export async function signInWithGoogle() {
@@ -269,5 +274,21 @@ export async function initializeAuth() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session?.user) {
     setSession(session.user);
+  } else {
+    clearSession();
   }
+  return session;
+}
+
+export function subscribeToAuthChanges(onChange) {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    if (session?.user) {
+      setSession(session.user);
+    } else {
+      clearSession();
+    }
+    onChange(session);
+  });
+
+  return () => subscription.unsubscribe();
 }

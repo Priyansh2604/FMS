@@ -1,19 +1,21 @@
 import React from "react";
+import { formatCurrency } from "../../utils/currency";
 
-export default function DonutChart() {
-  const distribution = [
-    { name: "Housing", value: "45%", color: "bg-red-500", colorClass: "#ef4444" },
-    { name: "Food & Dining", value: "30%", color: "bg-amber-400", colorClass: "#facc15" },
-    { name: "Transport", value: "25%", color: "bg-rose-400", colorClass: "#fb7185" }
-  ];
+export default function DonutChart({ data = [], total = 0 }) {
+  const colors = ["#ef4444", "#facc15", "#fb7185", "#14b8a6", "#3b82f6", "#a855f7", "#f97316"];
+  let offset = 0;
+  const distribution = data.map((item, index) => {
+    const percentage = total ? (item.valuation / total) * 100 : 0;
+    const result = { name: item.type, value: `${percentage.toFixed(1)}%`, colorClass: colors[index % colors.length], start: offset, end: offset + percentage };
+    offset += percentage;
+    return result;
+  });
 
   // Conic gradient string
   // Red: 0 to 45%
   // Yellow: 45 to 75%
   // Rose: 75 to 100%
-  const gradientStyle = {
-    background: "conic-gradient(from 0deg, #ef4444 0% 45%, #facc15 45% 75%, #fb7185 75% 100%)"
-  };
+  const gradientStyle = { background: `conic-gradient(${distribution.map((item) => `${item.colorClass} ${item.start}% ${item.end}%`).join(", ")})` };
 
   return (
     <div className="editorial-card p-8 flex flex-col gap-6 select-none">
@@ -27,7 +29,7 @@ export default function DonutChart() {
         >
           {/* Inner cutout for donut shape */}
           <div className="absolute inset-0 m-auto w-32 h-32 bg-surface-container-lowest rounded-full flex flex-col items-center justify-center shadow-inner">
-            <span className="font-display text-[26px] text-primary font-bold">₹42.5k</span>
+            <span className="font-display text-[22px] text-primary font-bold">{formatCurrency(total)}</span>
             <span className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest font-bold">Total</span>
           </div>
         </div>
@@ -37,7 +39,7 @@ export default function DonutChart() {
           {distribution.map((item) => (
             <div key={item.name} className="flex justify-between items-center font-sans text-label-md">
               <div className="flex items-center gap-3">
-                <div className={`w-3.5 h-3.5 rounded-full ${item.color}`} />
+                <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: item.colorClass }} />
                 <span className="text-on-surface-variant font-medium">{item.name}</span>
               </div>
               <span className="text-primary font-bold">{item.value}</span>
