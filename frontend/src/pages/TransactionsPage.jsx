@@ -63,6 +63,14 @@ function saveLocalTransaction(userId, transaction) {
   return transactions;
 }
 
+function updateLocalTransaction(userId, transaction) {
+  const transactions = getLocalTransactions(userId).map((item) =>
+    item.id === transaction.id ? { ...item, ...transaction } : item
+  );
+  localStorage.setItem(localTransactionsKey(userId), JSON.stringify(transactions));
+  return transactions;
+}
+
 export default function TransactionsPage() {
   const user = getCurrentUser();
   const userId = user?.id || "";
@@ -90,6 +98,7 @@ export default function TransactionsPage() {
   const [uploadResult, setUploadResult] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [savingManual, setSavingManual] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -142,6 +151,31 @@ export default function TransactionsPage() {
       )
     : expenses;
 
+  const resetManualForm = () => {
+    setMerchantName(""); setAmount(""); setDate(""); setTransactionType("expense");
+    setCategory(""); setNotes(""); setEditingTransaction(null);
+  };
+
+  const openAddTransaction = () => {
+    resetManualForm();
+    setUploadError("");
+    setActiveTab("manual");
+    setModalOpen(true);
+  };
+
+  const openEditTransaction = (transaction) => {
+    setEditingTransaction(transaction);
+    setMerchantName(transaction.merchant || transaction.description || "");
+    setAmount(String(Math.abs(Number(transaction.amount) || 0)));
+    setDate(transaction.date || transaction.expense_date || "");
+    setTransactionType(transaction.type || "expense");
+    setCategory(transaction.category || "");
+    setNotes(transaction.notes || transaction.description || "");
+    setUploadError("");
+    setActiveTab("manual");
+    setModalOpen(true);
+  };
+
   const handleManualSubmit = async (e) => {
     e.preventDefault();
     setUploadError("");
@@ -159,23 +193,35 @@ export default function TransactionsPage() {
       return;
     }
     const isIncome = transactionType === "income";
+    const transactionPayload = {
+      user_id: userId, merchant: merchantName, type: isIncome ? "income" : "expense",
+      amount: parsedAmount, date, category, notes,
+    };
 
     setSavingManual(true);
     try {
-      const res = await fetch(`${apiBaseUrl}/api/transactions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: userId, merchant: merchantName, type: isIncome ? "income" : "expense",
-          amount: parsedAmount, date, category, notes,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.details || data.error || "Failed to save transaction");
+      const isEditing = Boolean(editingTransaction);
+      const isLocal = isEditing && String(editingTransaction.id).startsWith("local-");
+      if (isLocal) {
+        updateLocalTransaction(userId, { ...editingTransaction, ...transactionPayload });
+      } else {
+        const res = await fetch(`${apiBaseUrl}/api/transactions${isEditing ? `/${encodeURIComponent(editingTransaction.id)}` : ""}`, {
+          method: isEditing ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(transactionPayload),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.details || data.error || `Failed to ${isEditing ? "update" : "save"} transaction`);
+      }
       await fetchExpenses();
       setModalOpen(false);
-      setMerchantName(""); setAmount(""); setDate(""); setCategory(""); setNotes("");
+      resetManualForm();
     } catch (err) {
+      if (editingTransaction) {
+        setUploadError(err.message || "Could not update transaction");
+        setSavingManual(false);
+        return;
+      }
       const localTransaction = {
         id: `local-${Date.now()}`,
         user_id: userId,
@@ -190,7 +236,7 @@ export default function TransactionsPage() {
       saveLocalTransaction(userId, localTransaction);
       await fetchExpenses();
       setModalOpen(false);
-      setMerchantName(""); setAmount(""); setDate(""); setCategory(""); setNotes("");
+      resetManualForm();
     } finally {
       setSavingManual(false);
     }
@@ -276,7 +322,7 @@ export default function TransactionsPage() {
             </p>
           )}
         </div>
-        <button onClick={() => setModalOpen(true)} className="btn btn-primary">Add Transaction</button>
+        <button onClick={openAddTransaction} className="btn btn-primary">Add Transaction</button>
       </div>
 
       {/* Stats */}
@@ -379,16 +425,27 @@ export default function TransactionsPage() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     {tx.source === "manual" && (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteTransaction(tx)}
-                        disabled={deletingId === tx.id}
-                        className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                        title="Delete transaction"
-                        aria-label={`Delete ${tx.merchant || "transaction"}`}
-                      >
-                        <span className="material-symbols-outlined text-[20px]">delete</span>
-                      </button>
+                      <div className="flex justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEditTransaction(tx)}
+                          className="btn btn-icon btn-ghost text-primary hover:bg-surface-variant"
+                          title="Edit transaction"
+                          aria-label={`Edit ${tx.merchant || "transaction"}`}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">edit</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTransaction(tx)}
+                          disabled={deletingId === tx.id}
+                          className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                          title="Delete transaction"
+                          aria-label={`Delete ${tx.merchant || "transaction"}`}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">delete</span>
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -413,8 +470,8 @@ export default function TransactionsPage() {
         {/* Modal Header */}
         <div className="px-8 py-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface shrink-0">
           <div>
-            <h2 className="font-sans text-headline-md text-primary">New Transaction</h2>
-            <p className="font-sans text-label-sm text-on-surface-variant mt-1">Upload receipt or enter manually</p>
+            <h2 className="font-sans text-headline-md text-primary">{editingTransaction ? "Edit Transaction" : "New Transaction"}</h2>
+            <p className="font-sans text-label-sm text-on-surface-variant mt-1">{editingTransaction ? "Update the transaction details" : "Upload receipt or enter manually"}</p>
           </div>
           <button className="btn btn-icon btn-ghost shrink-0" onClick={() => setModalOpen(false)}>
             <span className="material-symbols-outlined text-[24px]">close</span>
@@ -605,8 +662,8 @@ export default function TransactionsPage() {
                 </div>
               )}
               <div className="pt-6 border-t border-outline-variant/30 flex gap-4 mt-auto">
-                <button type="button" onClick={() => setModalOpen(false)} className="btn btn-outline flex-1">Cancel</button>
-                <button type="submit" disabled={savingManual} className="btn btn-primary flex-1 disabled:opacity-50">{savingManual ? "Saving..." : "Add"}</button>
+                <button type="button" onClick={() => { setModalOpen(false); resetManualForm(); }} className="btn btn-outline flex-1">Cancel</button>
+                <button type="submit" disabled={savingManual} className="btn btn-primary flex-1 disabled:opacity-50">{savingManual ? (editingTransaction ? "Updating..." : "Saving...") : (editingTransaction ? "Update" : "Add")}</button>
               </div>
             </form>
           )}

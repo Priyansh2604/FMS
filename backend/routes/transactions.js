@@ -82,6 +82,44 @@ router.post('/', async (req, res) => {
   }
 });
 
+router.put('/:id', async (req, res) => {
+  try {
+    const { user_id: userId, merchant, type, category, amount, date, notes } = req.body;
+    if (!userId || !merchant || !type || !category || amount == null || !date) {
+      return res.status(400).json({ error: 'user_id, merchant, type, category, amount, and date are required' });
+    }
+    if (!requireSupabase(res)) return;
+
+    const values = {
+      merchant: merchant.trim(), type, category,
+      amount: Math.abs(Number(amount)), date, notes: notes || null,
+    };
+    const { data, error } = await supabase.from('transactions')
+      .update(values)
+      .eq('id', req.params.id)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error && isMissingTransactionsTable(error)) {
+      const fallback = await supabase.from('expenses').update({
+        merchant: values.merchant,
+        category: values.category,
+        amount: values.amount,
+        expense_date: values.date,
+        description: values.notes,
+        source: values.type === 'income' ? 'manual_income' : 'manual',
+      }).eq('id', req.params.id).eq('user_id', userId).in('source', ['manual', 'manual_income']).select().single();
+      if (fallback.error) throw fallback.error;
+      return res.json(mapExpenseToTransaction(fallback.data));
+    }
+    if (error) throw error;
+    res.json(data);
+  } catch (error) {
+    res.status(400).json({ error: 'Failed to update transaction', details: error.message });
+  }
+});
+
 router.delete('/:id', async (req, res) => {
   try {
     const userId = req.query.user_id;
