@@ -80,7 +80,6 @@ export default function Sidebar({ onCloseMobile }) {
 
       {/* Footer controls */}
       <div className="pt-6 border-t border-outline-variant/30 flex flex-col gap-4">
-        <button className="btn btn-primary btn-block">Upgrade to Pro</button>
         <div className="flex flex-col gap-1">
           <a href="#" className="btn btn-ghost btn-sm justify-start">
             <span className="material-symbols-outlined text-[20px]">help_outline</span>

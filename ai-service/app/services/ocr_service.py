@@ -3,11 +3,45 @@ import subprocess
 import tempfile
 from abc import ABC, abstractmethod
 from pathlib import Path
+import shutil
 
 from app.config import settings
 from app.schemas.expense import OCRResult
 
 logger = logging.getLogger(__name__)
+
+
+class OCRUnavailableError(RuntimeError):
+    """Raised when the native OCR executable is not available."""
+
+
+def _find_tesseract() -> str:
+    configured = settings.TESSERACT_CMD.strip()
+    candidates = [
+        configured,
+        shutil.which("tesseract") or "",
+        r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+        r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+    ]
+    for candidate in candidates:
+        if candidate and Path(candidate).is_file():
+            return candidate
+    raise OCRUnavailableError(
+        "Tesseract OCR is not installed. Install Tesseract or set TESSERACT_CMD in ai-service/.env."
+    )
+
+
+def _find_poppler() -> str | None:
+    configured = settings.POPPLER_PATH.strip()
+    if configured and Path(configured).is_dir():
+        return configured
+    if shutil.which("pdftoppm"):
+        return None
+    candidates = [
+        r"C:\Program Files\poppler\Library\bin",
+        r"C:\Program Files\poppler\bin",
+    ]
+    return next((path for path in candidates if Path(path).is_dir()), None)
 
 
 class OCRProvider(ABC):
@@ -18,6 +52,9 @@ class OCRProvider(ABC):
 
 class TesseractOCR(OCRProvider):
     async def extract_text(self, file_path: str) -> OCRResult:
+        import pytesseract
+
+        pytesseract.pytesseract.tesseract_cmd = _find_tesseract()
         ext = Path(file_path).suffix.lower()
 
         if ext == ".pdf":
@@ -44,6 +81,8 @@ class TesseractOCR(OCRProvider):
         except ImportError:
             logger.error("pytesseract not installed")
             return OCRResult(text="", confidence=0.0, engine="tesseract", page_count=0)
+        except OCRUnavailableError:
+            raise
         except Exception as e:
             logger.error("Tesseract OCR failed: %s", e)
             return OCRResult(text="", confidence=0.0, engine="tesseract", page_count=0)
@@ -54,7 +93,7 @@ class TesseractOCR(OCRProvider):
             import pytesseract
             from PIL import Image
 
-            pages = convert_from_path(file_path, dpi=300)
+            pages = convert_from_path(file_path, dpi=300, poppler_path=_find_poppler())
             all_text = []
             all_confidences = []
 
@@ -82,6 +121,8 @@ class TesseractOCR(OCRProvider):
         except ImportError:
             logger.error("pdf2image or pytesseract not installed")
             return OCRResult(text="", confidence=0.0, engine="tesseract", page_count=0)
+        except OCRUnavailableError:
+            raise
         except Exception as e:
             logger.error("PDF OCR failed: %s", e)
             return OCRResult(text="", confidence=0.0, engine="tesseract", page_count=0)

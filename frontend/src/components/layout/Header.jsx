@@ -108,10 +108,6 @@ export default function Header({ onMenuToggle }) {
             </span>
           </button>
 
-          <button className="btn btn-primary btn-sm hidden sm:inline-flex">
-            Upgrade to Pro
-          </button>
-
           {/* Panels */}
           {activePanel && (
             <>

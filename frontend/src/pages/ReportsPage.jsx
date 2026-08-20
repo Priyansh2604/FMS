@@ -4,6 +4,7 @@ import SpendingChart from "../components/ui/SpendingChart";
 import DonutChart from "../components/ui/DonutChart";
 import { getCurrentUser } from "../auth";
 import { formatCurrency } from "../utils/currency";
+import { jsPDF } from "jspdf";
 
 function investmentsStorageKey(userId) {
   return `aura_investments_${userId}`;
@@ -27,11 +28,19 @@ const typeIcons = {
   Other: "account_balance_wallet",
 };
 
+function formatPdfCurrency(value, currency) {
+  return `${currency} ${Number(value || 0).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
+
 export default function ReportsPage() {
   const userId = getCurrentUser()?.id || "";
   const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
   const [investments, setInvestments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
 
   const fetchInvestments = useCallback(async () => {
     if (!userId) return;
@@ -70,6 +79,73 @@ export default function ReportsPage() {
     isDark: index === portfolio.length - 1 && portfolio.length > 2,
   }));
 
+  const handleExportPdf = () => {
+    if (exporting || portfolio.length === 0) return;
+
+    setExporting(true);
+    try {
+      const currency = getCurrentUser()?.currency || "INR";
+      const document = new jsPDF();
+      const generatedAt = new Date().toLocaleDateString("en-IN", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      document.setFontSize(22);
+      document.setTextColor(31, 41, 55);
+      document.text("AURA Finance", 20, 24);
+      document.setFontSize(14);
+      document.text("Portfolio Analysis", 20, 34);
+      document.setFontSize(9);
+      document.setTextColor(107, 114, 128);
+      document.text(`Generated ${generatedAt}`, 20, 42);
+
+      document.setDrawColor(229, 231, 235);
+      document.line(20, 48, 190, 48);
+      document.setFontSize(11);
+      document.setTextColor(31, 41, 55);
+      document.text("Summary", 20, 60);
+
+      const summary = [
+        ["Invested", formatPdfCurrency(totalInvested, currency)],
+        ["Current value", formatPdfCurrency(totalValue, currency)],
+        ["Gain / loss", formatPdfCurrency(totalGain, currency)],
+      ];
+      summary.forEach(([label, value], index) => {
+        const y = 72 + index * 10;
+        document.setTextColor(107, 114, 128);
+        document.text(label, 20, y);
+        document.setTextColor(31, 41, 55);
+        document.text(value, 100, y);
+      });
+
+      document.setTextColor(31, 41, 55);
+      document.text("Allocation by investment type", 20, 112);
+      document.setFontSize(9);
+      document.setTextColor(107, 114, 128);
+      document.text("Type", 20, 122);
+      document.text("Invested", 85, 122);
+      document.text("Current value", 125, 122);
+      document.text("Allocation", 175, 122);
+
+      categories.forEach((item, index) => {
+        const y = 132 + index * 9;
+        if (y > 275) return;
+        document.setTextColor(31, 41, 55);
+        document.text(String(item.type).slice(0, 25), 20, y);
+        document.text(formatPdfCurrency(item.invested, currency), 85, y);
+        document.text(formatPdfCurrency(item.valuation, currency), 125, y);
+        document.text(item.percentage, 175, y);
+      });
+
+      const filename = `aura-portfolio-report-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.save(filename);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto pb-24">
       <div className="mb-12 mt-4 flex flex-col sm:flex-row sm:items-end justify-between gap-6">
@@ -78,7 +154,16 @@ export default function ReportsPage() {
           <h2 className="font-display text-display text-primary tracking-tight">Portfolio Analysis</h2>
         </div>
         <div>
-          <button className="btn btn-outline">Export PDF</button>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={loading || exporting || portfolio.length === 0}
+            className="btn btn-outline disabled:opacity-50"
+            title={portfolio.length === 0 ? "Add investments to export a report" : "Download portfolio report as PDF"}
+          >
+            <span className="material-symbols-outlined text-[18px]">download</span>
+            {exporting ? "Exporting..." : "Export PDF"}
+          </button>
         </div>
       </div>
 

@@ -3,6 +3,7 @@ from fastapi import APIRouter, File, UploadFile, Query, HTTPException
 from fastapi.responses import JSONResponse
 
 from app.services.expense_service import process_receipt
+from app.services.ocr_service import OCRUnavailableError
 from app.services.supabase_service import get_user_expenses, count_user_expenses
 from app.schemas.expense import ProcessExpenseResponse, ExpenseListResponse, BatchProcessResponse
 
@@ -46,6 +47,12 @@ async def process_expense(
         return ProcessExpenseResponse(
             success=False,
             error={"code": "EXTRACTION_FAILED", "message": str(e)},
+        )
+    except OCRUnavailableError as e:
+        logger.warning("OCR unavailable: %s", e)
+        return ProcessExpenseResponse(
+            success=False,
+            error={"code": "OCR_UNAVAILABLE", "message": str(e)},
         )
     except Exception as e:
         logger.error("Processing error: %s", e, exc_info=True)

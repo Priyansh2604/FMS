@@ -14,6 +14,8 @@ class Settings(BaseSettings):
     TOKENROUTER_MODEL: str = "openai/gpt-4o-mini"
 
     OCR_ENGINE: str = "tesseract"
+    TESSERACT_CMD: str = ""
+    POPPLER_PATH: str = ""
 
     NODE_SERVER_URL: str = "http://localhost:5000"
     FASTAPI_PORT: int = 8000
