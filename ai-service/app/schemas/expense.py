@@ -88,6 +88,13 @@ def normalize_category(raw: str | None) -> str:
     return "Other"
 
 
+class LineItem(BaseModel):
+    name: str
+    quantity: float = 1.0
+    unit_price: Optional[float] = None
+    total: Optional[float] = None
+
+
 class ExpenseExtraction(BaseModel):
     merchant: Optional[str] = None
     amount: Optional[float] = Field(None, ge=0)
@@ -98,12 +105,32 @@ class ExpenseExtraction(BaseModel):
     payment_method: Optional[str] = None
     confidence: float = Field(0.0, ge=0.0, le=1.0)
 
+    gst_amount: Optional[float] = Field(None, ge=0)
+    gst_percent: Optional[float] = Field(None, ge=0, le=100)
+    cgst: Optional[float] = Field(None, ge=0)
+    sgst: Optional[float] = Field(None, ge=0)
+    igst: Optional[float] = Field(None, ge=0)
+    subtotal: Optional[float] = Field(None, ge=0)
+    invoice_number: Optional[str] = None
+    vendor_gstin: Optional[str] = None
+    line_items: list[LineItem] = []
+
     def normalize(self) -> "ExpenseExtraction":
         self.category = normalize_category(self.category)
         if self.amount is not None:
             self.amount = round(self.amount, 2)
         if self.merchant:
             self.merchant = self.merchant.strip().title()
+        if self.gst_amount is not None:
+            self.gst_amount = round(self.gst_amount, 2)
+        if self.cgst is not None:
+            self.cgst = round(self.cgst, 2)
+        if self.sgst is not None:
+            self.sgst = round(self.sgst, 2)
+        if self.igst is not None:
+            self.igst = round(self.igst, 2)
+        if self.subtotal is not None:
+            self.subtotal = round(self.subtotal, 2)
         return self
 
 
@@ -145,6 +172,15 @@ class ProcessedExpense(BaseModel):
     ai_confidence: Optional[float] = None
     ai_category_confidence: Optional[float] = None
     receipt_url: Optional[str] = None
+    gst_amount: Optional[float] = None
+    gst_percent: Optional[float] = None
+    cgst: Optional[float] = None
+    sgst: Optional[float] = None
+    igst: Optional[float] = None
+    subtotal: Optional[float] = None
+    invoice_number: Optional[str] = None
+    vendor_gstin: Optional[str] = None
+    line_items: list[dict] = []
     duplicate_detected: bool = False
     duplicate_of: Optional[str] = None
     created_at: Optional[str] = None

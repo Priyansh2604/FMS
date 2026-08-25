@@ -5,13 +5,13 @@ import time
 import httpx
 
 from app.config import settings
-from app.schemas.expense import ExpenseExtraction, VALID_CATEGORIES
+from app.schemas.expense import ExpenseExtraction, LineItem, VALID_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """You are an expense extraction engine for AURA Finance.
 
-Extract structured financial information from OCR text.
+Extract structured financial information from OCR text of receipts and invoices.
 
 Rules:
 - Never invent information. If a value is missing, return null.
@@ -20,13 +20,16 @@ Rules:
 - Determine the most appropriate expense category from the allowed list.
 - When multiple monetary values exist, prefer the final payable/total amount.
 - Date should be in YYYY-MM-DD format when possible.
+- For GST/tax: extract GST amount, GST percentage, and breakdown (CGST, SGST, IGST) if present.
+- For line items: extract each item with name, quantity, unit price, and total if present on the bill.
+- Extract invoice number and vendor GSTIN if present.
 - Return ONLY valid JSON matching the provided schema.
 - Do not return markdown. Do not explain your answer.
 
 Allowed categories:
 {categories}""".format(categories="\n".join(f"- {c}" for c in VALID_CATEGORIES))
 
-USER_PROMPT_TEMPLATE = """Extract the expense from this receipt text:
+USER_PROMPT_TEMPLATE = """Extract the expense from this receipt/invoice text:
 
 ---
 {ocr_text}
@@ -35,13 +38,29 @@ USER_PROMPT_TEMPLATE = """Extract the expense from this receipt text:
 Return a JSON object with these fields:
 {{
   "merchant": "string or null",
-  "amount": number or null,
+  "amount": number or null (total/final payable amount),
   "currency": "string (default INR)",
   "category": "one of the allowed categories",
   "description": "string or null",
   "expense_date": "YYYY-MM-DD or null",
   "payment_method": "string or null",
-  "confidence": 0.0 to 1.0
+  "confidence": 0.0 to 1.0,
+  "gst_amount": number or null (total GST/tax amount if present),
+  "gst_percent": number or null (GST/tax percentage if present, e.g. 18 for 18%),
+  "cgst": number or null (CGST amount if present),
+  "sgst": number or null (SGST amount if present),
+  "igst": number or null (IGST amount if present),
+  "subtotal": number or null (amount before tax if present),
+  "invoice_number": "string or null (invoice/bill number if present)",
+  "vendor_gstin": "string or null (vendor GSTIN if present)",
+  "line_items": [
+    {{
+      "name": "item name",
+      "quantity": number,
+      "unit_price": number or null,
+      "total": number or null
+    }}
+  ] (array of line items if present on the bill, otherwise empty array)
 }}"""
 
 
@@ -132,6 +151,17 @@ class LLMProvider:
             logger.error("Failed to parse LLM JSON: %s\nContent: %s", e, content[:500])
             raise ValueError(f"Invalid JSON from LLM: {e}")
 
+        raw_items = parsed.get("line_items", []) or []
+        line_items = []
+        for item in raw_items:
+            if isinstance(item, dict) and item.get("name"):
+                line_items.append(LineItem(
+                    name=item["name"],
+                    quantity=float(item.get("quantity", 1)),
+                    unit_price=float(item["unit_price"]) if item.get("unit_price") is not None else None,
+                    total=float(item["total"]) if item.get("total") is not None else None,
+                ))
+
         extraction = ExpenseExtraction(
             merchant=parsed.get("merchant"),
             amount=parsed.get("amount"),
@@ -141,6 +171,15 @@ class LLMProvider:
             expense_date=parsed.get("expense_date"),
             payment_method=parsed.get("payment_method"),
             confidence=float(parsed.get("confidence", 0.0)),
+            gst_amount=float(parsed["gst_amount"]) if parsed.get("gst_amount") is not None else None,
+            gst_percent=float(parsed["gst_percent"]) if parsed.get("gst_percent") is not None else None,
+            cgst=float(parsed["cgst"]) if parsed.get("cgst") is not None else None,
+            sgst=float(parsed["sgst"]) if parsed.get("sgst") is not None else None,
+            igst=float(parsed["igst"]) if parsed.get("igst") is not None else None,
+            subtotal=float(parsed["subtotal"]) if parsed.get("subtotal") is not None else None,
+            invoice_number=parsed.get("invoice_number"),
+            vendor_gstin=parsed.get("vendor_gstin"),
+            line_items=line_items,
         )
         return extraction.normalize()
 

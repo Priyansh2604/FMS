@@ -1,10 +1,11 @@
+import json
 import logging
 import time
 import uuid
 
 from app.services.ocr_service import extract_text_from_file
 from app.services.llm_service import get_llm_provider
-from app.services.supabase_service import insert_expense, find_duplicate
+from app.services.supabase_service import insert_expense, find_duplicate, upload_receipt
 from app.schemas.expense import (
     ExpenseExtraction,
     ExpenseExtractionResult,
@@ -106,6 +107,8 @@ async def process_receipt(
         if extraction.amount is None:
             raise ValueError("Could not extract amount from the receipt")
 
+        receipt_url = await upload_receipt(file_content, filename, user_id)
+
         duplicate = await find_duplicate(
             user_id=user_id,
             merchant=extraction.merchant or "",
@@ -128,6 +131,16 @@ async def process_receipt(
             "ai_confidence": result.confidence_scores.overall,
             "ai_category_confidence": extraction.confidence,
             "duplicate_of": duplicate["id"] if duplicate else None,
+            "receipt_url": receipt_url,
+            "gst_amount": extraction.gst_amount,
+            "gst_percent": extraction.gst_percent,
+            "cgst": extraction.cgst,
+            "sgst": extraction.sgst,
+            "igst": extraction.igst,
+            "subtotal": extraction.subtotal,
+            "invoice_number": extraction.invoice_number,
+            "vendor_gstin": extraction.vendor_gstin,
+            "line_items": json.dumps([item.model_dump() for item in extraction.line_items]) if extraction.line_items else None,
         }
 
         inserted = await insert_expense(expense_row)
@@ -147,6 +160,15 @@ async def process_receipt(
             ai_confidence=inserted.get("ai_confidence"),
             ai_category_confidence=inserted.get("ai_category_confidence"),
             receipt_url=inserted.get("receipt_url"),
+            gst_amount=inserted.get("gst_amount"),
+            gst_percent=inserted.get("gst_percent"),
+            cgst=inserted.get("cgst"),
+            sgst=inserted.get("sgst"),
+            igst=inserted.get("igst"),
+            subtotal=inserted.get("subtotal"),
+            invoice_number=inserted.get("invoice_number"),
+            vendor_gstin=inserted.get("vendor_gstin"),
+            line_items=json.loads(inserted["line_items"]) if inserted.get("line_items") else [],
             duplicate_detected=duplicate is not None,
             duplicate_of=duplicate["id"] if duplicate else None,
             created_at=inserted.get("created_at"),

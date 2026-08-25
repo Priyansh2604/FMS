@@ -72,6 +72,67 @@ router.post('/process-batch', upload.array('files', 10), async (req, res) => {
   }
 });
 
+router.post('/manual', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
+    }
+
+    const response = await fetch(`${FASTAPI_URL}/api/expenses/manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...req.body, user_id: userId }),
+      timeout: 10000,
+    });
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('[EXPENSES] Manual create error:', err.message);
+    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+  }
+});
+
+router.get('/summary', async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    if (!userId) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
+    }
+
+    const response = await fetch(`${FASTAPI_URL}/api/expenses/summary?user_id=${encodeURIComponent(userId)}`, {
+      timeout: 10000,
+    });
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('[EXPENSES] Summary error:', err.message);
+    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+  }
+});
+
+router.delete('/:expense_id', async (req, res) => {
+  try {
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
+    }
+
+    const response = await fetch(
+      `${FASTAPI_URL}/api/expenses/${req.params.expense_id}?user_id=${encodeURIComponent(userId)}`,
+      { method: 'DELETE', timeout: 10000 }
+    );
+
+    const data = await response.json();
+    res.status(response.status).json(data);
+  } catch (err) {
+    console.error('[EXPENSES] Delete error:', err.message);
+    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const userId = req.query.user_id;
