@@ -7,6 +7,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 _client: Client | None = None
+_learned_categories: list[dict] | None = None
 
 RECEIPT_BUCKET = "receipts"
 
@@ -21,12 +22,22 @@ def get_client() -> Client:
     return _client
 
 
+MIME_TYPES = {
+    "pdf": "application/pdf",
+    "jpg": "image/jpeg",
+    "jpeg": "image/jpeg",
+    "png": "image/png",
+    "webp": "image/webp",
+}
+
+
 async def upload_receipt(file_content: bytes, filename: str, user_id: str) -> str | None:
     try:
         client = get_client()
-        ext = filename.rsplit(".", 1)[-1] if "." in filename else "bin"
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
         path = f"{user_id}/{uuid.uuid4()}.{ext}"
-        client.storage.from_(RECEIPT_BUCKET).upload(path, file_content, {"content-type": f"image/{ext}"})
+        content_type = MIME_TYPES.get(ext, "application/octet-stream")
+        client.storage.from_(RECEIPT_BUCKET).upload(path, file_content, {"content-type": content_type})
         url = client.storage.from_(RECEIPT_BUCKET).get_public_url(path)
         logger.info("Receipt uploaded to %s", path)
         return url
@@ -139,3 +150,39 @@ async def delete_expense(expense_id: str, user_id: str) -> bool:
         .execute()
     )
     return bool(result.data)
+
+
+async def get_learned_categories() -> list[dict]:
+    global _learned_categories
+    if _learned_categories is not None:
+        return _learned_categories
+
+    try:
+        client = get_client()
+        result = (
+            client.table("expenses")
+            .select("category, subcategory")
+            .not_.is_("subcategory", "null")
+            .neq("subcategory", "")
+            .execute()
+        )
+        seen = set()
+        categories = []
+        for row in (result.data or []):
+            cat = row.get("category", "")
+            sub = row.get("subcategory", "")
+            key = f"{cat}::{sub}"
+            if key not in seen and sub:
+                seen.add(key)
+                categories.append({"category": cat, "subcategory": sub})
+        _learned_categories = categories
+        logger.info("Loaded %d learned subcategories from DB", len(categories))
+        return categories
+    except Exception as e:
+        logger.warning("Failed to load learned categories: %s", e)
+        return []
+
+
+def invalidate_learned_categories():
+    global _learned_categories
+    _learned_categories = None

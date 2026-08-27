@@ -4,9 +4,18 @@ const multer = require('multer');
 const fetch = require('node-fetch');
 const FormData = require('form-data');
 const path = require('path');
+const { supabase } = require('../supabase');
 
 const FASTAPI_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+async function tryFastAPI(fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    return null;
+  }
+}
 
 function getUserId(req) {
   return req.query.user_id || req.body?.user_id || '';
@@ -101,15 +110,33 @@ router.get('/summary', async (req, res) => {
       return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
     }
 
-    const response = await fetch(`${FASTAPI_URL}/api/expenses/summary?user_id=${encodeURIComponent(userId)}`, {
-      timeout: 10000,
+    const fastResult = await tryFastAPI(async () => {
+      const response = await fetch(`${FASTAPI_URL}/api/expenses/summary?user_id=${encodeURIComponent(userId)}`, { timeout: 10000 });
+      if (!response.ok) throw new Error('FastAPI responded with ' + response.status);
+      return await response.json();
     });
 
-    const data = await response.json();
-    res.status(response.status).json(data);
+    if (fastResult) return res.json(fastResult);
+
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: { code: 'NO_BACKEND', message: 'Neither AI service nor database available' } });
+    }
+
+    const { data: expenses, error } = await supabase
+      .from('expenses').select('*').eq('user_id', userId);
+    if (error) throw error;
+
+    const totalSpent = (expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
+    const byCategory = {};
+    (expenses || []).forEach(e => {
+      const cat = e.category || 'Uncategorized';
+      byCategory[cat] = (byCategory[cat] || 0) + Number(e.amount || 0);
+    });
+
+    res.json({ totalSpent, count: expenses?.length || 0, byCategory, expenses: expenses || [] });
   } catch (err) {
     console.error('[EXPENSES] Summary error:', err.message);
-    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+    res.status(500).json({ success: false, error: { code: 'SUMMARY_FAILED', message: err.message } });
   }
 });
 
@@ -120,16 +147,27 @@ router.delete('/:expense_id', async (req, res) => {
       return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
     }
 
-    const response = await fetch(
-      `${FASTAPI_URL}/api/expenses/${req.params.expense_id}?user_id=${encodeURIComponent(userId)}`,
-      { method: 'DELETE', timeout: 10000 }
-    );
+    const fastResult = await tryFastAPI(async () => {
+      const response = await fetch(
+        `${FASTAPI_URL}/api/expenses/${req.params.expense_id}?user_id=${encodeURIComponent(userId)}`,
+        { method: 'DELETE', timeout: 10000 }
+      );
+      if (!response.ok) throw new Error('FastAPI responded with ' + response.status);
+      return await response.json();
+    });
 
-    const data = await response.json();
-    res.status(response.status).json(data);
+    if (fastResult) return res.json(fastResult);
+
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: { code: 'NO_BACKEND', message: 'Neither AI service nor database available' } });
+    }
+
+    const { error } = await supabase.from('expenses').delete().eq('id', req.params.expense_id).eq('user_id', userId);
+    if (error) throw error;
+    res.json({ success: true, deletedId: req.params.expense_id });
   } catch (err) {
     console.error('[EXPENSES] Delete error:', err.message);
-    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+    res.status(500).json({ success: false, error: { code: 'DELETE_FAILED', message: err.message } });
   }
 });
 
@@ -140,19 +178,62 @@ router.get('/', async (req, res) => {
       return res.status(400).json({ success: false, error: { code: 'MISSING_USER', message: 'user_id is required' } });
     }
 
-    const params = new URLSearchParams({
-      user_id: userId,
-      page: req.query.page || '1',
-      limit: req.query.limit || '20',
+    const fastResult = await tryFastAPI(async () => {
+      const params = new URLSearchParams({
+        user_id: userId,
+        page: req.query.page || '1',
+        limit: req.query.limit || '20',
+      });
+      if (req.query.category) params.append('category', req.query.category);
+      const response = await fetch(`${FASTAPI_URL}/api/expenses?${params.toString()}`);
+      if (!response.ok) throw new Error('FastAPI responded with ' + response.status);
+      return await response.json();
     });
-    if (req.query.category) params.append('category', req.query.category);
 
-    const response = await fetch(`${FASTAPI_URL}/api/expenses?${params.toString()}`);
-    const data = await response.json();
-    res.status(response.status).json(data);
+    if (fastResult) return res.json(fastResult);
+
+    if (!supabase) {
+      return res.status(503).json({ success: false, error: { code: 'NO_BACKEND', message: 'Neither AI service nor database available' } });
+    }
+
+    const page = parseInt(req.query.page || '1', 10);
+    const limit = parseInt(req.query.limit || '20', 10);
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase.from('expenses').select('*', { count: 'exact' }).eq('user_id', userId);
+    if (req.query.category) query = query.eq('category', req.query.category);
+
+    const { data, error, count } = await query.order('created_at', { ascending: false }).range(from, to);
+    if (error) throw error;
+
+    res.json({ expenses: data || [], total: count || 0, page, limit });
   } catch (err) {
     console.error('[EXPENSES] List error:', err.message);
-    res.status(502).json({ success: false, error: { code: 'FASTAPI_UNREACHABLE', message: 'AI service is unavailable' } });
+    res.status(500).json({ success: false, error: { code: 'LIST_FAILED', message: err.message } });
+  }
+});
+
+router.get('/categories', async (req, res) => {
+  try {
+    const fastResult = await tryFastAPI(async () => {
+      const response = await fetch(`${FASTAPI_URL}/api/expenses/categories`);
+      if (!response.ok) throw new Error('FastAPI responded with ' + response.status);
+      return await response.json();
+    });
+    if (fastResult) return res.json(fastResult);
+
+    const { VALID_CATEGORIES } = require('../utils/categories');
+    res.json({
+      success: true,
+      static: VALID_CATEGORIES,
+      learned: [],
+      categories: VALID_CATEGORIES.map((c) => ({ value: c, label: c, subcategories: [] })),
+      custom_subcategories: [],
+    });
+  } catch (err) {
+    console.error('[EXPENSES] Categories error:', err.message);
+    res.status(500).json({ success: false, error: { code: 'CATEGORIES_FAILED', message: err.message } });
   }
 });
 

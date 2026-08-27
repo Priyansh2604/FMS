@@ -7,6 +7,7 @@ import AIAdvisorPage from "./pages/AIAdvisorPage";
 import ReportsPage from "./pages/ReportsPage";
 import SettingsPage from "./pages/SettingsPage";
 import InvestmentsPage from "./pages/InvestmentsPage";
+import MarketPage from "./pages/MarketPage";
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
@@ -57,6 +58,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />
             <Route path="invest" element={<InvestmentsPage />} />
+            <Route path="market" element={<MarketPage />} />
             <Route path="advisor" element={<AIAdvisorPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />

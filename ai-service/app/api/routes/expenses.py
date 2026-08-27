@@ -13,8 +13,9 @@ from app.services.supabase_service import (
     create_manual_expense,
     get_expense_summary,
     delete_expense,
+    get_learned_categories,
 )
-from app.schemas.expense import ProcessExpenseResponse, ExpenseListResponse, BatchProcessResponse
+from app.schemas.expense import ProcessExpenseResponse, ExpenseListResponse, BatchProcessResponse, VALID_CATEGORIES
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/expenses", tags=["expenses"])
@@ -183,3 +184,34 @@ async def list_expenses(
     except Exception as e:
         logger.error("Failed to list expenses: %s", e)
         raise HTTPException(status_code=500, detail="Failed to load expenses")
+
+
+@router.get("/categories")
+async def list_categories():
+    try:
+        learned = await get_learned_categories()
+        learned_subs = {}
+        for entry in learned:
+            cat = entry["category"]
+            sub = entry["subcategory"]
+            if cat not in learned_subs:
+                learned_subs[cat] = []
+            if sub not in learned_subs[cat]:
+                learned_subs[cat].append(sub)
+
+        all_categories = []
+        for cat in VALID_CATEGORIES:
+            entry = {"value": cat, "label": cat, "subcategories": learned_subs.get(cat, [])}
+            all_categories.append(entry)
+
+        custom_subs = learned_subs.get("Other", [])
+        return {
+            "success": True,
+            "static": VALID_CATEGORIES,
+            "learned": learned,
+            "categories": all_categories,
+            "custom_subcategories": custom_subs,
+        }
+    except Exception as e:
+        logger.error("Failed to load categories: %s", e)
+        return {"success": True, "static": VALID_CATEGORIES, "learned": [], "categories": [{"value": c, "label": c, "subcategories": []} for c in VALID_CATEGORIES], "custom_subcategories": []}

@@ -24,6 +24,7 @@ export default function Sidebar({ onCloseMobile }) {
     { name: "Dashboard", path: "/dashboard", icon: "dashboard" },
     { name: "Transactions", path: "/dashboard/transactions", icon: "receipt_long" },
     { name: "Investments", path: "/dashboard/invest", icon: "candlestick_chart" },
+    { name: "Market", path: "/dashboard/market", icon: "show_chart" },
     { name: "AI Advisor", path: "/dashboard/advisor", icon: "smart_toy" },
     { name: "Reports", path: "/dashboard/reports", icon: "analytics" },
     { name: "Settings", path: "/dashboard/settings", icon: "settings" },

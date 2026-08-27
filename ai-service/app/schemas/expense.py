@@ -2,12 +2,12 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 VALID_CATEGORIES = [
-    "Food",
+    "Food & Dining",
     "Groceries",
     "Transport",
     "Shopping",
     "Entertainment",
-    "Bills",
+    "Bills & Recharge",
     "Utilities",
     "Healthcare",
     "Education",
@@ -17,59 +17,187 @@ VALID_CATEGORIES = [
     "Subscriptions",
     "Salary",
     "Investment",
+    "Personal Care",
+    "Home & Kitchen",
+    "Electronics",
+    "Gifts & Donations",
+    "Fuel & Parking",
+    "Taxes & Fees",
+    "Professional Services",
+    "Pets",
+    "Kids & Baby",
+    "Sports & Fitness",
     "Other",
 ]
 
 CATEGORY_ALIASES = {
-    "restaurant": "Food",
-    "dining": "Food",
-    "cafe": "Food",
-    "coffee": "Food",
-    "swiggy": "Food",
-    "zomato": "Food",
-    "uber eats": "Food",
+    "restaurant": "Food & Dining",
+    "dining": "Food & Dining",
+    "cafe": "Food & Dining",
+    "coffee": "Food & Dining",
+    "swiggy": "Food & Dining",
+    "zomato": "Food & Dining",
+    "uber eats": "Food & Dining",
+    "dominos": "Food & Dining",
+    "pizza": "Food & Dining",
+    "mcdonalds": "Food & Dining",
+    "kfc": "Food & Dining",
+    "subway": "Food & Dining",
+    "bar": "Food & Dining",
+    "pub": "Food & Dining",
+    "bakery": "Food & Dining",
+    "sweet": "Food & Dining",
+    "tea": "Food & Dining",
+    "juice": "Food & Dining",
     "supermarket": "Groceries",
     "bigbasket": "Groceries",
     "blinkit": "Groceries",
     "zepto": "Groceries",
     "instamart": "Groceries",
+    "dmart": "Groceries",
+    "more": "Groceries",
+    "reliance fresh": "Groceries",
+    "grocery": "Groceries",
+    "vegetable": "Groceries",
+    "fruit": "Groceries",
     "ola": "Transport",
     "uber": "Transport",
     "rapido": "Transport",
     "metro": "Transport",
-    "petrol": "Transport",
-    "fuel": "Transport",
+    "auto": "Transport",
+    "bus": "Transport",
+    "train": "Transport",
+    "railway": "Transport",
+    "cab": "Transport",
+    "ola rapido": "Transport",
     "parking": "Transport",
+    "toll": "Transport",
     "flipkart": "Shopping",
     "amazon": "Shopping",
     "myntra": "Shopping",
     "ajio": "Shopping",
+    "meesho": "Shopping",
+    "nykaa": "Shopping",
+    "decathlon": "Shopping",
+    "clothing": "Shopping",
+    "apparel": "Shopping",
+    "fashion": "Shopping",
     "movie": "Entertainment",
+    "pvr": "Entertainment",
+    "inox": "Entertainment",
+    "game": "Entertainment",
+    "gaming": "Entertainment",
+    "book": "Entertainment",
     "netflix": "Subscriptions",
     "hotstar": "Subscriptions",
+    "disney": "Subscriptions",
     "spotify": "Subscriptions",
     "prime": "Subscriptions",
     "youtube premium": "Subscriptions",
-    "jio": "Bills",
-    "airtel": "Bills",
-    "vi": "Bills",
-    "bsnl": "Bills",
+    "jiocinema": "Subscriptions",
+    "zee5": "Subscriptions",
+    "sony liv": "Subscriptions",
+    "apple music": "Subscriptions",
+    "cloud storage": "Subscriptions",
+    "jio": "Bills & Recharge",
+    "airtel": "Bills & Recharge",
+    "vi": "Bills & Recharge",
+    "bsnl": "Bills & Recharge",
+    "recharge": "Bills & Recharge",
+    "mobile bill": "Bills & Recharge",
+    "broadband": "Bills & Recharge",
+    "wifi": "Bills & Recharge",
+    "dth": "Bills & Recharge",
     "electricity": "Utilities",
     "water": "Utilities",
     "gas": "Utilities",
+    "sewage": "Utilities",
+    "maintenance": "Utilities",
+    "society": "Utilities",
     "insurance": "Insurance",
+    "health insurance": "Insurance",
+    "car insurance": "Insurance",
+    "life insurance": "Insurance",
     "hospital": "Healthcare",
     "pharmacy": "Healthcare",
     "medical": "Healthcare",
     "doctor": "Healthcare",
+    "clinic": "Healthcare",
+    "diagnostic": "Healthcare",
+    "lab": "Healthcare",
+    "medicine": "Healthcare",
     "college": "Education",
     "school": "Education",
     "course": "Education",
     "udemy": "Education",
+    "unacademy": "Education",
+    "byju": "Education",
+    "tuition": "Education",
+    " coaching": "Education",
+    "book": "Education",
+    "exam": "Education",
     "hotel": "Travel",
     "flight": "Travel",
     "irctc": "Travel",
     "makemytrip": "Travel",
+    "booking": "Travel",
+    "airbnb": "Travel",
+    "visa": "Travel",
+    "tour": "Travel",
+    "salon": "Personal Care",
+    "barber": "Personal Care",
+    "beauty": "Personal Care",
+    "parlour": "Personal Care",
+    "cosmetic": "Personal Care",
+    "furniture": "Home & Kitchen",
+    "ikea": "Home & Kitchen",
+    "decor": "Home & Kitchen",
+    "appliance": "Home & Kitchen",
+    "kitchen": "Home & Kitchen",
+    "home": "Home & Kitchen",
+    "croma": "Electronics",
+    " Reliance Digital": "Electronics",
+    "apple": "Electronics",
+    "samsung": "Electronics",
+    "headphone": "Electronics",
+    "charger": "Electronics",
+    "cable": "Electronics",
+    "gift": "Gifts & Donations",
+    "donation": "Gifts & Donations",
+    "charity": "Gifts & Donations",
+    "petrol": "Fuel & Parking",
+    "diesel": "Fuel & Parking",
+    "fuel": "Fuel & Parking",
+    "petrol pump": "Fuel & Parking",
+    "hpcl": "Fuel & Parking",
+    "bpcl": "Fuel & Parking",
+    "iocl": "Fuel & Parking",
+    "income tax": "Taxes & Fees",
+    "gst": "Taxes & Fees",
+    "stamp duty": "Taxes & Fees",
+    "penalty": "Taxes & Fees",
+    "fine": "Taxes & Fees",
+    "registration": "Taxes & Fees",
+    "lawyer": "Professional Services",
+    "ca": "Professional Services",
+    "chartered accountant": "Professional Services",
+    "consultant": "Professional Services",
+    "freelancer": "Professional Services",
+    "vet": "Pets",
+    "pet": "Pets",
+    "dog": "Pets",
+    "cat": "Pets",
+    "petshop": "Pets",
+    "child": "Kids & Baby",
+    "baby": "Kids & Baby",
+    "diaper": "Kids & Baby",
+    "toy": "Kids & Baby",
+    "gym": "Sports & Fitness",
+    "fitness": "Sports & Fitness",
+    "yoga": "Sports & Fitness",
+    "sport": "Sports & Fitness",
+    "cricket": "Sports & Fitness",
+    "swimming": "Sports & Fitness",
 }
 
 
@@ -100,6 +228,7 @@ class ExpenseExtraction(BaseModel):
     amount: Optional[float] = Field(None, ge=0)
     currency: str = "INR"
     category: str = "Other"
+    subcategory: Optional[str] = None
     description: Optional[str] = None
     expense_date: Optional[str] = None
     payment_method: Optional[str] = None
@@ -114,6 +243,17 @@ class ExpenseExtraction(BaseModel):
     invoice_number: Optional[str] = None
     vendor_gstin: Optional[str] = None
     line_items: list[LineItem] = []
+
+    tip_amount: Optional[float] = Field(None, ge=0)
+    discount_amount: Optional[float] = Field(None, ge=0)
+    total_items: Optional[int] = Field(None, ge=0)
+    payment_method_detail: Optional[str] = None
+    card_last_four: Optional[str] = None
+    upi_id: Optional[str] = None
+    store_address: Optional[str] = None
+    store_phone: Optional[str] = None
+    receipt_number: Optional[str] = None
+    tax_rate: Optional[float] = Field(None, ge=0, le=100)
 
     def normalize(self) -> "ExpenseExtraction":
         self.category = normalize_category(self.category)
@@ -131,13 +271,17 @@ class ExpenseExtraction(BaseModel):
             self.igst = round(self.igst, 2)
         if self.subtotal is not None:
             self.subtotal = round(self.subtotal, 2)
+        if self.tip_amount is not None:
+            self.tip_amount = round(self.tip_amount, 2)
+        if self.discount_amount is not None:
+            self.discount_amount = round(self.discount_amount, 2)
         return self
 
 
 class OCRResult(BaseModel):
     text: str = ""
     confidence: float = 0.0
-    engine: str = "tesseract"
+    engine: str = "rapidocr"
     page_count: int = 1
 
 
@@ -164,6 +308,7 @@ class ProcessedExpense(BaseModel):
     amount: float
     currency: str = "INR"
     category: str
+    subcategory: Optional[str] = None
     description: Optional[str] = None
     expense_date: Optional[str] = None
     payment_method: Optional[str] = None
@@ -181,6 +326,16 @@ class ProcessedExpense(BaseModel):
     invoice_number: Optional[str] = None
     vendor_gstin: Optional[str] = None
     line_items: list[dict] = []
+    tip_amount: Optional[float] = None
+    discount_amount: Optional[float] = None
+    total_items: Optional[int] = None
+    payment_method_detail: Optional[str] = None
+    card_last_four: Optional[str] = None
+    upi_id: Optional[str] = None
+    store_address: Optional[str] = None
+    store_phone: Optional[str] = None
+    receipt_number: Optional[str] = None
+    tax_rate: Optional[float] = None
     duplicate_detected: bool = False
     duplicate_of: Optional[str] = None
     created_at: Optional[str] = None

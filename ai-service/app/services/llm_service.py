@@ -9,58 +9,104 @@ from app.schemas.expense import ExpenseExtraction, LineItem, VALID_CATEGORIES
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expense extraction engine for AURA Finance.
+SYSTEM_PROMPT = """You are an expert expense extraction engine for AURA Finance (Indian fintech app).
 
-Extract structured financial information from OCR text of receipts and invoices.
+Your job: extract EVERY piece of financial information from OCR text of receipts, invoices, bills, and payment screenshots.
 
-Rules:
-- Never invent information. If a value is missing, return null.
-- Normalize currency (INR, USD, EUR, etc.).
-- Normalize the merchant name (title case, remove extra symbols).
-- Determine the most appropriate expense category from the allowed list.
-- When multiple monetary values exist, prefer the final payable/total amount.
-- Date should be in YYYY-MM-DD format when possible.
-- For GST/tax: extract GST amount, GST percentage, and breakdown (CGST, SGST, IGST) if present.
-- For line items: extract each item with name, quantity, unit price, and total if present on the bill.
-- Extract invoice number and vendor GSTIN if present.
-- Return ONLY valid JSON matching the provided schema.
-- Do not return markdown. Do not explain your answer.
+RULES:
+1. NEVER invent or guess values. If a field is not present, return null.
+2. The `amount` field MUST be the FINAL total / grand total / amount paid — never a subtotal.
+3. For Indian receipts: extract GST breakdown (CGST+SGST or IGST), HSN codes, GSTIN.
+4. For line items: extract EVERY item with name, qty, unit price, total.
+5. Detect payment method from keywords: UPI, credit card, debit card, net banking, cash, wallet.
+6. If card last 4 digits are visible, extract them.
+7. If UPI ID is visible, extract it.
+8. Extract store/shop address and phone if present.
+9. Extract tip, discount, service charge if present.
+10. Category must be EXACTLY one of the allowed categories below.
+11. Return ONLY valid JSON. No markdown, no explanation, no preamble.
 
-Allowed categories:
-{categories}""".format(categories="\n".join(f"- {c}" for c in VALID_CATEGORIES))
+ALLOWED CATEGORIES (pick the closest match):
+{categories}
 
-USER_PROMPT_TEMPLATE = """Extract the expense from this receipt/invoice text:
+CATEGORY SELECTION GUIDE:
+- Restaurant/cafe/food delivery/swiggy/zomato → "Food & Dining"
+- Supermarket/vegetables/groceries/bigbasket/blinkit → "Groceries"
+- Petrol/diesel/fuel/parking/toll → "Fuel & Parking"
+- Taxi/ola/uber/auto/bus/train/metro → "Transport"
+- Amazon/flipkart/clothes/shopping → "Shopping"
+- Movie/theatre/game → "Entertainment"
+- Mobile recharge/broadband/dth → "Bills & Recharge"
+- Electricity/water/gas/maintenance → "Utilities"
+- Hospital/medicine/pharmacy/doctor → "Healthcare"
+- College/school/course/book → "Education"
+- Hotel/flight/train ticket/irctc → "Travel"
+- House rent → "Rent"
+- Health/car/life insurance → "Insurance"
+- Netflix/spotify/prime → "Subscriptions"
+- Salon/barber/parlour/beauty → "Personal Care"
+- Furniture/home decor/appliance → "Home & Kitchen"
+- Phone/laptop/headphone/electronics → "Electronics"
+- Gift/donation/charity → "Gifts & Donations"
+- Lawyer/CA/consultant → "Professional Services"
+- Vet/pet food/pet shop → "Pets"
+- Baby/diaper/toy/kids → "Kids & Baby"
+- Gym/yoga/sports → "Sports & Fitness"
+- Income tax/GST/stamp duty/penalty → "Taxes & Fees"
+- Salary/paycheck → "Salary"
+- Mutual fund/SIP/stock → "Investment"
+- Anything else → "Other"
+"""
+
+USER_PROMPT_TEMPLATE = """Extract ALL financial data from this receipt/invoice text:
 
 ---
 {ocr_text}
 ---
 
-Return a JSON object with these fields:
+Return a JSON object with these fields (use null for missing values):
 {{
-  "merchant": "string or null",
-  "amount": number or null (total/final payable amount),
-  "currency": "string (default INR)",
-  "category": "one of the allowed categories",
-  "description": "string or null",
-  "expense_date": "YYYY-MM-DD or null",
-  "payment_method": "string or null",
-  "confidence": 0.0 to 1.0,
-  "gst_amount": number or null (total GST/tax amount if present),
-  "gst_percent": number or null (GST/tax percentage if present, e.g. 18 for 18%),
-  "cgst": number or null (CGST amount if present),
-  "sgst": number or null (SGST amount if present),
-  "igst": number or null (IGST amount if present),
-  "subtotal": number or null (amount before tax if present),
-  "invoice_number": "string or null (invoice/bill number if present)",
-  "vendor_gstin": "string or null (vendor GSTIN if present)",
+  "merchant": "string — store/brand/vendor name, cleaned up",
+  "amount": number — GRAND TOTAL / final amount paid (NOT subtotal),
+  "currency": "string — INR/USD/EUR etc",
+  "category": "one of the allowed categories — pick the CLOSEST match, even if imperfect",
+  "subcategory": "string — ALWAYS provide a specific subcategory. Examples: 'Lunch at Cafe', 'Bike Repair', 'Pet Grooming', 'Gym Monthly', 'Cloud Hosting'. Even if category matches well, give a descriptive subcategory.",
+  "description": "string — brief 1-line summary of what was purchased",
+  "expense_date": "YYYY-MM-DD format",
+  "payment_method": "string — UPI/Credit Card/Debit Card/Cash/Wallet/Net Banking",
+  "confidence": number 0.0-1.0 — how confident you are in the extraction,
+
+  "gst_amount": number — total GST/tax if present,
+  "gst_percent": number — GST rate (e.g. 5, 12, 18, 28),
+  "cgst": number — CGST amount if split,
+  "sgst": number — SGST amount if split,
+  "igst": number — IGST amount if inter-state,
+  "subtotal": number — amount before tax,
+  "tax_rate": number — effective tax rate percentage,
+
+  "tip_amount": number — tip/gratuity if present,
+  "discount_amount": number — discount/scheme amount if present,
+  "total_items": number — count of distinct items purchased,
+
+  "invoice_number": "string — invoice/bill/receipt number",
+  "vendor_gstin": "string — 15-digit GSTIN",
+  "receipt_number": "string — receipt/transaction reference number",
+
+  "payment_method_detail": "string — e.g. 'HDFC Credit Card', 'Google Pay UPI'",
+  "card_last_four": "string — last 4 digits of card if visible",
+  "upi_id": "string — UPI ID if visible (e.g. user@upi)",
+
+  "store_address": "string — store/shop address if visible",
+  "store_phone": "string — store phone number if visible",
+
   "line_items": [
     {{
-      "name": "item name",
+      "name": "string — item name",
       "quantity": number,
       "unit_price": number or null,
       "total": number or null
     }}
-  ] (array of line items if present on the bill, otherwise empty array)
+  ]
 }}"""
 
 
@@ -109,31 +155,35 @@ class LLMProvider:
         model: str,
         ocr_text: str,
     ) -> ExpenseExtraction:
+        categories_text = "\n".join(f"  - {c}" for c in VALID_CATEGORIES)
+        system_prompt = SYSTEM_PROMPT.format(categories=categories_text)
+        user_prompt = USER_PROMPT_TEMPLATE.format(ocr_text=ocr_text[:8000])
+
         payload = {
             "model": model,
             "messages": [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": USER_PROMPT_TEMPLATE.format(ocr_text=ocr_text)},
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.1,
-            "max_tokens": 1024,
+            "max_tokens": 2048,
         }
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         }
 
-        logger.info("LLM request: provider=%s model=%s", self.provider, model)
+        logger.info("LLM request: provider=%s model=%s ocr_chars=%d", self.provider, model, len(ocr_text))
         start = time.time()
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=90.0) as client:
             resp = await client.post(url, json=payload, headers=headers)
             resp.raise_for_status()
 
         elapsed_ms = int((time.time() - start) * 1000)
         data = resp.json()
         content = data["choices"][0]["message"]["content"].strip()
-        logger.info("LLM response received in %dms", elapsed_ms)
+        logger.info("LLM response received in %dms (%d chars)", elapsed_ms, len(content))
 
         extraction = self._parse_response(content)
         return extraction
@@ -167,6 +217,7 @@ class LLMProvider:
             amount=parsed.get("amount"),
             currency=parsed.get("currency", "INR"),
             category=parsed.get("category", "Other"),
+            subcategory=parsed.get("subcategory"),
             description=parsed.get("description"),
             expense_date=parsed.get("expense_date"),
             payment_method=parsed.get("payment_method"),
@@ -177,8 +228,18 @@ class LLMProvider:
             sgst=float(parsed["sgst"]) if parsed.get("sgst") is not None else None,
             igst=float(parsed["igst"]) if parsed.get("igst") is not None else None,
             subtotal=float(parsed["subtotal"]) if parsed.get("subtotal") is not None else None,
+            tax_rate=float(parsed["tax_rate"]) if parsed.get("tax_rate") is not None else None,
             invoice_number=parsed.get("invoice_number"),
             vendor_gstin=parsed.get("vendor_gstin"),
+            receipt_number=parsed.get("receipt_number"),
+            tip_amount=float(parsed["tip_amount"]) if parsed.get("tip_amount") is not None else None,
+            discount_amount=float(parsed["discount_amount"]) if parsed.get("discount_amount") is not None else None,
+            total_items=int(parsed["total_items"]) if parsed.get("total_items") is not None else None,
+            payment_method_detail=parsed.get("payment_method_detail"),
+            card_last_four=parsed.get("card_last_four"),
+            upi_id=parsed.get("upi_id"),
+            store_address=parsed.get("store_address"),
+            store_phone=parsed.get("store_phone"),
             line_items=line_items,
         )
         return extraction.normalize()

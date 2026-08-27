@@ -1,28 +1,29 @@
 import React, { useMemo, useRef, useState } from "react";
+import { fmtCompact, fmtPct, changeColor, changeSign } from "../../utils/marketFormat";
 
-const W = 800;
+const W = 900;
 const H = 360;
-const PAD = { l: 48, r: 16, t: 20, b: 36 };
+const PAD = { l: 60, r: 20, t: 16, b: 36 };
 
-const UP = "#059669";
-const DOWN = "#e11d48";
+const UP_COLOR = "#059669";
+const DOWN_COLOR = "#e11d48";
 
-const fmt = (v) => "₹" + v.toLocaleString("en-IN", { maximumFractionDigits: 2 });
-
-export default function CandleChart({ data }) {
+export default function CandleChart({ data, currency = "INR" }) {
   const [active, setActive] = useState(null);
   const svgRef = useRef(null);
 
   const { symbol, name, candles } = data;
 
   const chart = useMemo(() => {
+    if (!candles || candles.length === 0) return null;
     const innerW = W - PAD.l - PAD.r;
     const innerH = H - PAD.t - PAD.b;
     const step = innerW / candles.length;
-    const half = Math.max(4, step * 0.18);
+    const half = Math.max(3, Math.min(step * 0.3, 10));
 
-    const min = Math.min(...candles.map((c) => c.l));
-    const max = Math.max(...candles.map((c) => c.h));
+    const allPrices = candles.flatMap((c) => [c.h, c.l]);
+    const min = Math.min(...allPrices);
+    const max = Math.max(...allPrices);
     const range = max - min || 1;
     const lo = min - range * 0.05;
     const hi = max + range * 0.05;
@@ -31,20 +32,27 @@ export default function CandleChart({ data }) {
     const y = (v) => PAD.t + innerH - ((v - lo) / (hi - lo)) * innerH;
 
     const boxes = candles.map((c, i) => ({
-      ...c,
-      i,
-      up: c.c >= c.o,
+      ...c, i, up: c.c >= c.o,
       x: x(i),
-      wickTop: y(c.h),
-      wickBot: y(c.l),
+      wickTop: y(c.h), wickBot: y(c.l),
       bodyTop: y(Math.max(c.o, c.c)),
       bodyBot: y(Math.min(c.o, c.c)),
     }));
 
-    const ticks = Array.from({ length: 5 }, (_, i) => lo + ((hi - lo) / 4) * i);
+    const tickCount = 5;
+    const ticks = Array.from({ length: tickCount }, (_, i) => lo + ((hi - lo) / (tickCount - 1)) * i);
 
-    return { innerH, step, half, x, y, boxes, ticks };
+    return { innerH, step, half, x, y, boxes, ticks, lo, hi };
   }, [candles]);
+
+  if (!chart || candles.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16" style={{ minHeight: 280 }}>
+        <span className="material-symbols-outlined text-[40px] text-on-surface-variant/30 mb-3">candlestick_chart</span>
+        <p className="font-sans text-body-md text-on-surface-variant/50">No candle data available</p>
+      </div>
+    );
+  }
 
   const { innerH, step, half, x, y, boxes, ticks } = chart;
 
@@ -56,59 +64,38 @@ export default function CandleChart({ data }) {
   };
 
   const last = candles[candles.length - 1];
-  const prev = candles[candles.length - 2];
-  const dayChange = ((last.c - prev.c) / prev.c) * 100;
+  const prev = candles.length > 1 ? candles[candles.length - 2] : last;
+  const dayChange = prev.c > 0 ? ((last.c - prev.c) / prev.c) * 100 : 0;
+  const isUp = dayChange >= 0;
 
   const activeCandle = active != null ? boxes[active] : null;
-  const tooltipLeft = activeCandle ? Math.min(86, Math.max(14, (activeCandle.x / W) * 100)) : null;
+  const tooltipLeft = activeCandle ? Math.min(88, Math.max(12, (activeCandle.x / W) * 100)) : null;
 
   return (
-    <div className="editorial-card p-6 lg:p-8 flex flex-col gap-6">
-      {/* Symbol header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4 min-w-0">
-          <div className="w-11 h-11 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant shrink-0">
-            <span className="material-symbols-outlined text-[22px]">candlestick_chart</span>
-          </div>
-          <div className="min-w-0">
-            <p className="font-sans text-body-md text-primary font-bold truncate">
-              {symbol} · {name}
-            </p>
-            <p className="font-sans text-label-sm text-on-surface-variant">Daily OHLC · {candles.length} sessions</p>
-          </div>
-        </div>
+    <div className="flex flex-col gap-3">
+      {/* Summary */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <span className="font-display text-headline-md text-primary font-semibold">{fmt(last.c)}</span>
-          <span className={`font-sans text-label-sm font-bold ${dayChange >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-            {dayChange >= 0 ? "+" : ""}
-            {dayChange.toFixed(2)}%
+          <span className="font-mono text-headline-md text-primary font-bold">{fmtCompact(last.c, currency)}</span>
+          <span className={`font-mono text-body-md font-bold ${changeColor(isUp)}`}>
+            {changeSign(dayChange)}{dayChange.toFixed(2)}%
           </span>
+          <span className="font-sans text-label-sm text-on-surface-variant/50">Today</span>
         </div>
+        <span className="font-sans text-label-sm text-on-surface-variant/50">{candles.length} candles</span>
       </div>
 
       {/* Chart */}
       <div className="relative">
-        <svg
-          ref={svgRef}
-          viewBox={`0 0 ${W} ${H}`}
-          className="w-full h-auto block"
-          onMouseMove={handleMove}
-          onMouseLeave={() => setActive(null)}
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block"
+          onMouseMove={handleMove} onMouseLeave={() => setActive(null)}
         >
-          {/* Gridlines + Y labels */}
+          {/* Grid + Y labels */}
           {ticks.map((t, i) => (
             <g key={i}>
-              <line
-                x1={PAD.l}
-                x2={W - PAD.r}
-                y1={y(t)}
-                y2={y(t)}
-                stroke="var(--color-outline-variant)"
-                strokeOpacity={0.5}
-                strokeDasharray="4 4"
-              />
-              <text x={PAD.l - 10} y={y(t) + 4} textAnchor="end" fontSize="11" style={{ fill: "var(--color-outline)" }}>
-                ₹{Math.round(t)}
+              <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} stroke="var(--color-outline-variant)" strokeOpacity={0.3} strokeDasharray="3 3" />
+              <text x={PAD.l - 8} y={y(t) + 3.5} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" style={{ fill: "var(--color-outline)" }}>
+                {fmtCompact(t, currency).replace(/^./, '')}
               </text>
             </g>
           ))}
@@ -116,35 +103,29 @@ export default function CandleChart({ data }) {
           {/* Candles */}
           {boxes.map((b) => (
             <g key={b.i}>
-              <line x1={b.x} x2={b.x} y1={b.wickTop} y2={b.wickBot} stroke={b.up ? UP : DOWN} strokeWidth={1.5} />
+              <line x1={b.x} x2={b.x} y1={b.wickTop} y2={b.wickBot} stroke={b.up ? UP_COLOR : DOWN_COLOR} strokeWidth={1.2} />
               <rect
-                x={b.x - half}
-                y={b.bodyTop}
+                x={b.x - half} y={b.bodyTop}
                 width={half * 2}
                 height={Math.max(1, b.bodyBot - b.bodyTop)}
-                rx={1.5}
-                fill={b.up ? UP : DOWN}
+                rx={1}
+                fill={b.up ? UP_COLOR : DOWN_COLOR}
               />
             </g>
           ))}
 
           {/* Crosshair */}
           {activeCandle && (
-            <line
-              x1={activeCandle.x}
-              x2={activeCandle.x}
-              y1={PAD.t}
-              y2={PAD.t + innerH}
-              stroke="var(--color-outline)"
-              strokeOpacity={0.6}
-              strokeDasharray="4 4"
-            />
+            <g>
+              <line x1={activeCandle.x} x2={activeCandle.x} y1={PAD.t} y2={PAD.t + innerH} stroke="var(--color-outline)" strokeOpacity={0.4} strokeDasharray="3 3" />
+              <line x1={PAD.l} x2={W - PAD.r} y1={activeCandle.bodyTop + (activeCandle.bodyBot - activeCandle.bodyTop) / 2} y2={activeCandle.bodyTop + (activeCandle.bodyBot - activeCandle.bodyTop) / 2} stroke="var(--color-outline)" strokeOpacity={0.3} strokeDasharray="3 3" />
+            </g>
           )}
 
           {/* X labels */}
           {candles.map((c, i) =>
-            i % 2 === 0 || i === candles.length - 1 ? (
-              <text key={i} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" style={{ fill: "var(--color-outline)" }}>
+            i % Math.max(1, Math.ceil(candles.length / 8)) === 0 || i === candles.length - 1 ? (
+              <text key={i} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono)" style={{ fill: "var(--color-outline)" }}>
                 {c.day}
               </text>
             ) : null
@@ -153,31 +134,20 @@ export default function CandleChart({ data }) {
 
         {/* Tooltip */}
         {activeCandle && (
-          <div
-            className="absolute top-2 -translate-x-1/2 pointer-events-none bg-surface-container-lowest border border-outline-variant/40 shadow-lg rounded-xl px-4 py-3 z-10 w-max"
+          <div className="absolute -top-2 -translate-x-1/2 pointer-events-none bg-inverse-surface shadow-xl rounded-lg px-3.5 py-2.5 z-10 w-max"
             style={{ left: `${tooltipLeft}%` }}
           >
-            <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">
-              {activeCandle.day}
-            </p>
-            <ul className="flex flex-col gap-1 font-sans text-label-md">
-              <li className="flex justify-between gap-6">
-                <span className="text-on-surface-variant">Open</span>
-                <span className="text-primary font-bold">{fmt(activeCandle.o)}</span>
-              </li>
-              <li className="flex justify-between gap-6">
-                <span className="text-on-surface-variant">High</span>
-                <span className="text-emerald-700 font-bold">{fmt(activeCandle.h)}</span>
-              </li>
-              <li className="flex justify-between gap-6">
-                <span className="text-on-surface-variant">Low</span>
-                <span className="text-rose-700 font-bold">{fmt(activeCandle.l)}</span>
-              </li>
-              <li className="flex justify-between gap-6">
-                <span className="text-on-surface-variant">Close</span>
-                <span className="text-primary font-bold">{fmt(activeCandle.c)}</span>
-              </li>
-            </ul>
+            <p className="font-mono text-label-sm text-inverse-on-surface/60 mb-1.5">{activeCandle.day}</p>
+            <div className="grid grid-cols-2 gap-x-5 gap-y-0.5 font-mono text-label-sm">
+              <span className="text-inverse-on-surface/50">Open</span>
+              <span className="text-inverse-on-surface font-semibold text-right">{fmtCompact(activeCandle.o, currency)}</span>
+              <span className="text-inverse-on-surface/50">High</span>
+              <span className="text-emerald-400 font-semibold text-right">{fmtCompact(activeCandle.h, currency)}</span>
+              <span className="text-inverse-on-surface/50">Low</span>
+              <span className="text-rose-400 font-semibold text-right">{fmtCompact(activeCandle.l, currency)}</span>
+              <span className="text-inverse-on-surface/50">Close</span>
+              <span className="text-inverse-on-surface font-semibold text-right">{fmtCompact(activeCandle.c, currency)}</span>
+            </div>
           </div>
         )}
       </div>

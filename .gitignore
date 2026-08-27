@@ -1,20 +1,34 @@
+# Dependencies
 node_modules/
+.venv/
+package-lock.json
+
+# Environment files
 .env
 .env.local
-.DS_Store
-dist/
-build/
-.vscode/
-*.log
-/docs/
-/testscript
-
-package-lock.json
-package.json
+.env.*
 
 # Python AI service
+__pycache__/
+*.pyc
 ai-service/.venv/
-ai-service/__pycache__/
-ai-service/**/__pycache__/
-ai-service/*.pyc
-ai-service/.env
+
+# Build outputs
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Misc
+/docs/
+/testscript

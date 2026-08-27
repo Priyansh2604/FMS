@@ -2,14 +2,16 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { getCurrentUser } from "../auth";
 import { formatCurrency } from "../utils/currency";
+import { fetchCategories } from "../services/marketApi";
 
 const EXPENSE_CATEGORIES = [
-  { value: "Food", label: "Food" },
+  { value: "Food & Dining", label: "Food & Dining" },
   { value: "Groceries", label: "Groceries" },
+  { value: "Fuel & Parking", label: "Fuel & Parking" },
   { value: "Transport", label: "Transport" },
   { value: "Shopping", label: "Shopping" },
   { value: "Entertainment", label: "Entertainment" },
-  { value: "Bills", label: "Bills" },
+  { value: "Bills & Recharge", label: "Bills & Recharge" },
   { value: "Utilities", label: "Utilities" },
   { value: "Healthcare", label: "Healthcare" },
   { value: "Education", label: "Education" },
@@ -17,6 +19,15 @@ const EXPENSE_CATEGORIES = [
   { value: "Rent", label: "Rent" },
   { value: "Insurance", label: "Insurance" },
   { value: "Subscriptions", label: "Subscriptions" },
+  { value: "Personal Care", label: "Personal Care" },
+  { value: "Home & Kitchen", label: "Home & Kitchen" },
+  { value: "Electronics", label: "Electronics" },
+  { value: "Gifts & Donations", label: "Gifts & Donations" },
+  { value: "Taxes & Fees", label: "Taxes & Fees" },
+  { value: "Professional Services", label: "Professional Services" },
+  { value: "Pets", label: "Pets" },
+  { value: "Kids & Baby", label: "Kids & Baby" },
+  { value: "Sports & Fitness", label: "Sports & Fitness" },
   { value: "Other", label: "Other" },
 ];
 
@@ -29,11 +40,14 @@ const INCOME_CATEGORIES = [
 
 function getCategoryIcon(category) {
   const map = {
-    Food: "restaurant", Groceries: "shopping_cart", Transport: "local_taxi",
-    Shopping: "shopping_bag", Entertainment: "movie", Bills: "receipt_long",
-    Utilities: "cloud", Healthcare: "local_hospital", Education: "school",
-    Travel: "flight", Rent: "home", Insurance: "shield",
-    Subscriptions: "subscriptions", Salary: "payments", Freelance: "work",
+    "Food & Dining": "restaurant", Groceries: "shopping_cart", "Fuel & Parking": "local_gas_station",
+    Transport: "local_taxi", Shopping: "shopping_bag", Entertainment: "movie",
+    "Bills & Recharge": "receipt_long", Utilities: "cloud", Healthcare: "local_hospital",
+    Education: "school", Travel: "flight", Rent: "home", Insurance: "shield",
+    Subscriptions: "subscriptions", "Personal Care": "spa", "Home & Kitchen": "chair",
+    Electronics: "devices", "Gifts & Donations": "redeem", "Taxes & Fees": "gavel",
+    "Professional Services": "work", Pets: "pets", "Kids & Baby": "child_care",
+    "Sports & Fitness": "fitness_center", Salary: "payments", Freelance: "work",
     Investment: "trending_up", Other: "receipt_long",
   };
   return map[category] || "receipt_long";
@@ -100,7 +114,23 @@ export default function TransactionsPage() {
   const [savingManual, setSavingManual] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
+  const [dynamicCategories, setDynamicCategories] = useState([]);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    fetchCategories().then((data) => {
+      if (data?.success && data?.categories) {
+        setDynamicCategories(data.categories);
+      }
+    }).catch(() => {});
+  }, []);
+
+  const expenseCategories = dynamicCategories.length > 0
+    ? dynamicCategories.filter((c) => c.value !== "Salary" && c.value !== "Investment")
+    : EXPENSE_CATEGORIES;
+  const incomeCategories = dynamicCategories.length > 0
+    ? dynamicCategories.filter((c) => c.value === "Salary" || c.value === "Investment" || c.value === "Other")
+    : INCOME_CATEGORIES;
 
   const fetchExpenses = useCallback(async () => {
     if (!userId) return;
@@ -263,6 +293,7 @@ export default function TransactionsPage() {
         setExpenses((prev) => [data.expense, ...prev]);
         setUploadFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
+        fetchCategories().then((d) => { if (d?.categories) setDynamicCategories(d.categories); }).catch(() => {});
       } else {
         setUploadError(data.error?.message || "Processing failed. Please try again.");
       }
@@ -274,7 +305,7 @@ export default function TransactionsPage() {
   };
 
   const handleDeleteTransaction = async (transaction) => {
-    if (transaction.source !== "manual" || deletingId) return;
+    if (deletingId) return;
     if (!window.confirm(`Delete ${transaction.merchant || "this transaction"}?`)) return;
 
     setDeletingId(transaction.id);
@@ -283,6 +314,12 @@ export default function TransactionsPage() {
       if (String(transaction.id).startsWith("local-")) {
         const remaining = getLocalTransactions(userId).filter((item) => item.id !== transaction.id);
         localStorage.setItem(localTransactionsKey(userId), JSON.stringify(remaining));
+      } else if (transaction.source === "receipt") {
+        const response = await fetch(`${apiBaseUrl}/api/expenses/${encodeURIComponent(transaction.id)}?user_id=${encodeURIComponent(userId)}`, {
+          method: "DELETE",
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.detail || "Could not delete expense");
       } else {
         const response = await fetch(`${apiBaseUrl}/api/transactions/${encodeURIComponent(transaction.id)}?user_id=${encodeURIComponent(userId)}`, {
           method: "DELETE",
@@ -360,7 +397,7 @@ export default function TransactionsPage() {
           className="bg-transparent border border-outline-variant rounded-lg px-3 py-1.5 font-sans text-body-sm text-primary appearance-none outline-none focus:border-primary"
         >
           <option value="">All categories</option>
-          {EXPENSE_CATEGORIES.map((c) => (
+          {expenseCategories.map((c) => (
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
@@ -424,8 +461,8 @@ export default function TransactionsPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {tx.source === "manual" && (
-                      <div className="flex justify-end gap-1">
+                    <div className="flex justify-end gap-1">
+                      {tx.source === "manual" && (
                         <button
                           type="button"
                           onClick={() => openEditTransaction(tx)}
@@ -435,9 +472,10 @@ export default function TransactionsPage() {
                         >
                           <span className="material-symbols-outlined text-[20px]">edit</span>
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteTransaction(tx)}
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTransaction(tx)}
                           disabled={deletingId === tx.id}
                           className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
                           title="Delete transaction"
@@ -445,8 +483,7 @@ export default function TransactionsPage() {
                         >
                           <span className="material-symbols-outlined text-[20px]">delete</span>
                         </button>
-                      </div>
-                    )}
+                    </div>
                   </td>
                 </tr>
               );
@@ -561,7 +598,7 @@ export default function TransactionsPage() {
               {/* Processing steps */}
               {uploading && (
                 <div className="bg-surface-container/50 rounded-xl p-4 space-y-3">
-                  {["OCR text extraction", "AI expense mapping", "Validation & storage"].map((step, i) => (
+                  {["OCR text extraction (RapidOCR)", "AI expense mapping (LLM)", "Validation & storage"].map((step, i) => (
                     <div key={step} className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-[18px] text-primary animate-pulse">radio_button_checked</span>
                       <span className="font-sans text-body-sm text-on-surface-variant">{step}</span>
@@ -582,6 +619,24 @@ export default function TransactionsPage() {
                     <span className="text-on-surface-variant">Amount:</span><span className="text-primary font-medium">{formatCurrency(uploadResult.amount)}</span>
                     <span className="text-on-surface-variant">Category:</span><span className="text-primary font-medium">{uploadResult.category}</span>
                     <span className="text-on-surface-variant">Date:</span><span className="text-primary font-medium">{uploadResult.expense_date || "—"}</span>
+                    {uploadResult.payment_method && (
+                      <>
+                        <span className="text-on-surface-variant">Payment:</span>
+                        <span className="text-primary font-medium">{uploadResult.payment_method_detail || uploadResult.payment_method}</span>
+                      </>
+                    )}
+                    {uploadResult.gst_amount != null && (
+                      <>
+                        <span className="text-on-surface-variant">GST:</span>
+                        <span className="text-primary font-medium">{formatCurrency(uploadResult.gst_amount)} ({uploadResult.gst_percent || uploadResult.tax_rate || "—"}%)</span>
+                      </>
+                    )}
+                    {uploadResult.line_items?.length > 0 && (
+                      <>
+                        <span className="text-on-surface-variant">Items:</span>
+                        <span className="text-primary font-medium">{uploadResult.line_items.length} line items</span>
+                      </>
+                    )}
                     {uploadResult.ai_confidence != null && (
                       <>
                         <span className="text-on-surface-variant">Confidence:</span>
@@ -644,7 +699,7 @@ export default function TransactionsPage() {
                 <select required value={category} onChange={(e) => setCategory(e.target.value)}
                   className="w-full bg-transparent border-b border-outline-variant focus:border-primary px-0 py-2 font-sans text-body-md text-primary appearance-none outline-none">
                   <option value="" disabled>Select category...</option>
-                  {(transactionType === "income" ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((c) => (
+                  {(transactionType === "income" ? incomeCategories : expenseCategories).map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
                   ))}
                 </select>
