@@ -60,12 +60,12 @@ export default function DashboardPage() {
         </section>
 
         {topCategory && (
-          <InsightCard
-            title={`Top spending: ${topCategory.category}`}
-            description={`Your highest expense category is ${topCategory.category} at ${formatCurrency(topCategory.amount)}.${secondCategory ? ` Followed by ${secondCategory.category} at ${formatCurrency(secondCategory.amount)}.` : ""}`}
-            ctaLabel="View Transactions"
-            onCtaClick={() => navigate("/transactions")}
-          />
+<InsightCard
+              title={`Top spending: ${topCategory.category}`}
+              description={`Your highest expense category is ${topCategory.category} at ${formatCurrency(topCategory.amount)}.${secondCategory ? ` Followed by ${secondCategory.category} at ${formatCurrency(secondCategory.amount)}.` : ""}`}
+              ctaLabel="View Transactions"
+              onCtaClick={() => navigate("/dashboard/transactions")}
+            />
         )}
 
         {categoryBreakdown.length > 0 && (
@@ -129,8 +129,8 @@ export default function DashboardPage() {
                 ))
               )}
             </div>
-            {recentTransactions.length > 0 && (
-              <button onClick={() => navigate("/transactions")} className="btn btn-ghost btn-sm justify-start !px-0 mt-4">
+{recentTransactions.length > 0 && (
+              <button onClick={() => navigate("/dashboard/transactions")} className="btn btn-ghost btn-sm justify-start !px-0 mt-4">
                 View all transactions <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
               </button>
             )}

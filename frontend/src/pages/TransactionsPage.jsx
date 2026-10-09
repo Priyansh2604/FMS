@@ -115,6 +115,7 @@ export default function TransactionsPage() {
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
   const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [viewDetailTransaction, setViewDetailTransaction] = useState(null);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -460,8 +461,19 @@ export default function TransactionsPage() {
                       <span className="text-label-sm text-on-surface-variant">Manual</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 text-right">
+<td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
+                      {tx.source === "receipt" && (
+                        <button
+                          type="button"
+                          onClick={() => setViewDetailTransaction(tx)}
+                          className="btn btn-icon btn-ghost text-primary hover:bg-surface-variant"
+                          title="View details"
+                          aria-label={`View details for ${tx.merchant || "transaction"}`}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">visibility</span>
+                        </button>
+                      )}
                       {tx.source === "manual" && (
                         <button
                           type="button"
@@ -476,13 +488,13 @@ export default function TransactionsPage() {
                       <button
                         type="button"
                         onClick={() => handleDeleteTransaction(tx)}
-                          disabled={deletingId === tx.id}
-                          className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                          title="Delete transaction"
-                          aria-label={`Delete ${tx.merchant || "transaction"}`}
-                        >
-                          <span className="material-symbols-outlined text-[20px]">delete</span>
-                        </button>
+                        disabled={deletingId === tx.id}
+                        className="btn btn-icon btn-ghost text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                        title="Delete transaction"
+                        aria-label={`Delete ${tx.merchant || "transaction"}`}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">delete</span>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -724,6 +736,227 @@ export default function TransactionsPage() {
           )}
         </div>
       </div>
+
+      {viewDetailTransaction && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 transition-opacity" onClick={() => setViewDetailTransaction(null)} />
+      )}
+      {viewDetailTransaction && (
+        <div className="fixed right-0 top-0 h-full w-full max-w-2xl bg-surface shadow-2xl z-50 transform transition-transform duration-300 border-l border-outline-variant/30 flex flex-col translate-x-0">
+          <div className="px-8 py-6 border-b border-outline-variant/30 flex justify-between items-center bg-surface shrink-0">
+            <div>
+              <h2 className="font-sans text-headline-md text-primary">Expense Details</h2>
+              <p className="font-sans text-label-sm text-on-surface-variant mt-1">{viewDetailTransaction.merchant || "Receipt expense"}</p>
+            </div>
+            <button className="btn btn-icon btn-ghost shrink-0" onClick={() => setViewDetailTransaction(null)}>
+              <span className="material-symbols-outlined text-[24px]">close</span>
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
+            {/* Basic Info */}
+            <div className="editorial-card p-5 space-y-4">
+              <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Basic Information</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Merchant</p>
+                  <p className="font-sans text-body-md text-primary font-medium">{viewDetailTransaction.merchant || "—"}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Category</p>
+                  <p className="font-sans text-body-md text-primary font-medium">{viewDetailTransaction.category}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Amount</p>
+                  <p className="font-display text-headline-md text-primary">{formatCurrency(viewDetailTransaction.amount)}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Date</p>
+                  <p className="font-sans text-body-md text-primary">{viewDetailTransaction.expense_date || "—"}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Payment Method</p>
+                  <p className="font-sans text-body-md text-primary">{viewDetailTransaction.payment_method_detail || viewDetailTransaction.payment_method || "—"}</p>
+                </div>
+                <div>
+                  <p className="font-sans text-label-sm text-on-surface-variant">Source</p>
+                  <p className="font-sans text-body-md text-primary">Receipt (AI Extracted)</p>
+                </div>
+                {viewDetailTransaction.description && (
+                  <div className="col-span-2">
+                    <p className="font-sans text-label-sm text-on-surface-variant">Description</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.description}</p>
+                  </div>
+                )}
+                {viewDetailTransaction.invoice_number && (
+                  <div>
+                    <p className="font-sans text-label-sm text-on-surface-variant">Invoice #</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.invoice_number}</p>
+                  </div>
+                )}
+                {viewDetailTransaction.vendor_gstin && (
+                  <div>
+                    <p className="font-sans text-label-sm text-on-surface-variant">Vendor GSTIN</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.vendor_gstin}</p>
+                  </div>
+                )}
+                {viewDetailTransaction.receipt_number && (
+                  <div>
+                    <p className="font-sans text-label-sm text-on-surface-variant">Receipt #</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.receipt_number}</p>
+                  </div>
+                )}
+                {viewDetailTransaction.store_address && (
+                  <div className="col-span-2">
+                    <p className="font-sans text-label-sm text-on-surface-variant">Store Address</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.store_address}</p>
+                  </div>
+                )}
+                {viewDetailTransaction.store_phone && (
+                  <div>
+                    <p className="font-sans text-label-sm text-on-surface-variant">Store Phone</p>
+                    <p className="font-sans text-body-md text-primary">{viewDetailTransaction.store_phone}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* GST Details */}
+            {(viewDetailTransaction.gst_amount != null ||
+              viewDetailTransaction.gst_percent != null ||
+              viewDetailTransaction.cgst != null ||
+              viewDetailTransaction.sgst != null ||
+              viewDetailTransaction.igst != null ||
+              viewDetailTransaction.subtotal != null) && (
+              <div className="editorial-card p-5 space-y-4">
+                <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">GST Breakdown</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {viewDetailTransaction.subtotal != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Subtotal</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.subtotal)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.gst_amount != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Total GST</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.gst_amount)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.gst_percent != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">GST Rate</p>
+                      <p className="font-sans text-body-md text-primary">{viewDetailTransaction.gst_percent}%</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.cgst != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">CGST</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.cgst)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.sgst != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">SGST</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.sgst)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.igst != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">IGST</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.igst)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.tax_rate != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Effective Tax Rate</p>
+                      <p className="font-sans text-body-md text-primary">{viewDetailTransaction.tax_rate}%</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Line Items */}
+            {viewDetailTransaction.line_items && viewDetailTransaction.line_items.length > 0 && (
+              <div className="editorial-card p-5 space-y-4">
+                <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Line Items ({viewDetailTransaction.line_items.length})</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[400px]">
+                    <thead>
+                      <tr className="border-b border-outline-variant/30 font-sans text-label-sm text-on-surface-variant uppercase tracking-wider">
+                        <th className="px-4 py-2 font-semibold">Item</th>
+                        <th className="px-4 py-2 font-semibold text-right">Qty</th>
+                        <th className="px-4 py-2 font-semibold text-right">Unit Price</th>
+                        <th className="px-4 py-2 font-semibold text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewDetailTransaction.line_items.map((item, idx) => (
+                        <tr key={idx} className="border-b border-outline-variant/20 font-sans text-body-sm text-primary">
+                          <td className="px-4 py-2">{item.name}</td>
+                          <td className="px-4 py-2 text-right">{item.quantity || 1}</td>
+                          <td className="px-4 py-2 text-right">{item.unit_price != null ? formatCurrency(item.unit_price) : "—"}</td>
+                          <td className="px-4 py-2 text-right font-medium">{item.total != null ? formatCurrency(item.total) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Extras */}
+            {(viewDetailTransaction.tip_amount != null ||
+              viewDetailTransaction.discount_amount != null ||
+              viewDetailTransaction.total_items != null) && (
+              <div className="editorial-card p-5 space-y-4">
+                <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Additional Details</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  {viewDetailTransaction.tip_amount != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Tip</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.tip_amount)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.discount_amount != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Discount</p>
+                      <p className="font-sans text-body-md text-primary">{formatCurrency(viewDetailTransaction.discount_amount)}</p>
+                    </div>
+                  )}
+                  {viewDetailTransaction.total_items != null && (
+                    <div>
+                      <p className="font-sans text-label-sm text-on-surface-variant">Total Items</p>
+                      <p className="font-sans text-body-md text-primary">{viewDetailTransaction.total_items}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Confidence & Metadata */}
+            <div className="editorial-card p-5 space-y-4">
+              <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">AI Processing</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {viewDetailTransaction.ai_confidence != null && (
+                  <div>
+                    <p className="font-sans text-label-sm text-on-surface-variant">AI Confidence</p>
+                    <p className={`font-sans text-body-md font-medium ${viewDetailTransaction.ai_confidence >= 0.8 ? "text-emerald-700" : viewDetailTransaction.ai_confidence >= 0.5 ? "text-amber-700" : "text-rose-700"}`}>
+                      {(viewDetailTransaction.ai_confidence * 100).toFixed(0)}%
+                    </p>
+                  </div>
+                )}
+                {viewDetailTransaction.duplicate_detected && (
+                  <div className="col-span-2">
+                    <p className="font-sans text-label-sm text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
+                      Possible duplicate expense detected.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

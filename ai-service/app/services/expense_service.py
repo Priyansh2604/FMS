@@ -153,7 +153,7 @@ async def process_receipt(
             user_id=user_id,
             merchant=extraction.merchant or "",
             amount=extraction.amount,
-            expense_date=extraction.expense_date or "",
+            expense_date=extraction.expense_date,
         )
 
         expense_row = {

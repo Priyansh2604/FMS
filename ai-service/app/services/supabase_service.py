@@ -125,18 +125,21 @@ async def get_expense_summary(user_id: str) -> dict:
     }
 
 
-async def find_duplicate(user_id: str, merchant: str, amount: float, expense_date: str) -> dict | None:
+async def find_duplicate(user_id: str, merchant: str, amount: float, expense_date: str | None) -> dict | None:
     client = get_client()
-    result = (
+    query = (
         client.table("expenses")
         .select("id, merchant, amount, expense_date")
         .eq("user_id", user_id)
         .eq("merchant", merchant)
         .eq("amount", amount)
-        .eq("expense_date", expense_date)
         .limit(1)
-        .execute()
     )
+
+    if expense_date:
+        query = query.eq("expense_date", expense_date)
+
+    result = query.execute()
     return result.data[0] if result.data else None
 
 
