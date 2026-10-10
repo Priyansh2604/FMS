@@ -59,6 +59,19 @@ function getConfidenceBadge(conf) {
   return { label: "Low", color: "text-rose-700 bg-rose-50" };
 }
 
+function parseLineItems(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 function localTransactionsKey(userId) {
   return `aura_transactions_${userId}`;
 }
@@ -116,6 +129,8 @@ export default function TransactionsPage() {
   const [deletingId, setDeletingId] = useState(null);
   const [dynamicCategories, setDynamicCategories] = useState([]);
   const [viewDetailTransaction, setViewDetailTransaction] = useState(null);
+  const [receiptPreviewError, setReceiptPreviewError] = useState(false);
+  const [receiptPreviewLoading, setReceiptPreviewLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -160,7 +175,11 @@ export default function TransactionsPage() {
           }));
       const storedTransactions = Array.isArray(transactionData) ? manualTransactions : getLocalTransactions(userId);
       if (expenseData.success || storedTransactions.length > 0) {
-        setExpenses([...manualTransactions, ...(expenseData.expenses || [])].sort((a, b) =>
+        const receiptExpenses = (expenseData.expenses || []).map((exp) => ({
+          ...exp,
+          line_items: parseLineItems(exp.line_items),
+        }));
+        setExpenses([...manualTransactions, ...receiptExpenses].sort((a, b) =>
           new Date(b.created_at || b.expense_date || b.date) - new Date(a.created_at || a.expense_date || a.date)
         ));
         setTotal((expenseData.total || 0) + storedTransactions.length);
@@ -181,6 +200,41 @@ export default function TransactionsPage() {
         )
       )
     : expenses;
+
+  const openReceiptPreview = async (transaction) => {
+    setViewDetailTransaction({ ...transaction, line_items: parseLineItems(transaction.line_items) });
+    setReceiptPreviewError(false);
+    setReceiptPreviewLoading(true);
+
+    try {
+      const params = new URLSearchParams({
+        user_id: userId,
+        page: String(page),
+        limit: "20",
+      });
+      if (filterCategory) params.append("category", filterCategory);
+
+      const response = await fetch(`${apiBaseUrl}/api/expenses?${params}`);
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.detail || "Failed to refresh the receipt URL");
+      }
+
+      const refreshedTransaction = data.expenses?.find(
+        (expense) => String(expense.id) === String(transaction.id)
+      );
+      if (refreshedTransaction?.receipt_url) {
+        setViewDetailTransaction({ ...refreshedTransaction, line_items: parseLineItems(refreshedTransaction.line_items) });
+      } else if (!transaction.receipt_url) {
+        setReceiptPreviewError(true);
+      }
+    } catch (error) {
+      console.error("Failed to refresh receipt preview:", error);
+      if (!transaction.receipt_url) setReceiptPreviewError(true);
+    } finally {
+      setReceiptPreviewLoading(false);
+    }
+  };
 
   const resetManualForm = () => {
     setMerchantName(""); setAmount(""); setDate(""); setTransactionType("expense");
@@ -461,12 +515,12 @@ export default function TransactionsPage() {
                       <span className="text-label-sm text-on-surface-variant">Manual</span>
                     )}
                   </td>
-<td className="px-6 py-4 text-right">
+                  <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
                       {tx.source === "receipt" && (
                         <button
                           type="button"
-                          onClick={() => setViewDetailTransaction(tx)}
+                          onClick={() => openReceiptPreview(tx)}
                           className="btn btn-icon btn-ghost text-primary hover:bg-surface-variant"
                           title="View details"
                           aria-label={`View details for ${tx.merchant || "transaction"}`}
@@ -752,6 +806,51 @@ export default function TransactionsPage() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
+            <div className="editorial-card p-5 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Uploaded Receipt</h3>
+                {viewDetailTransaction.receipt_url && (
+                  <a
+                    href={viewDetailTransaction.receipt_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-sans text-label-sm text-primary underline"
+                  >
+                    Open in new tab
+                  </a>
+                )}
+              </div>
+              {receiptPreviewLoading ? (
+                <div className="flex min-h-48 items-center justify-center gap-2 text-on-surface-variant">
+                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                  <span className="font-sans text-body-sm">Loading receipt...</span>
+                </div>
+              ) : viewDetailTransaction.receipt_url ? receiptPreviewError ? (
+                <p className="font-sans text-body-sm text-rose-700">
+                  The receipt preview could not be loaded. Try opening it in a new tab.
+                </p>
+              ) : (
+                /\.pdf(?:$|[?#])/i.test(viewDetailTransaction.receipt_url) ? (
+                  <iframe
+                    src={viewDetailTransaction.receipt_url}
+                    title={`Receipt for ${viewDetailTransaction.merchant || "expense"}`}
+                    className="w-full h-[70vh] rounded-lg border border-outline-variant/30"
+                  />
+                ) : (
+                  <img
+                    src={viewDetailTransaction.receipt_url}
+                    alt={`Receipt for ${viewDetailTransaction.merchant || "expense"}`}
+                    className="w-full max-h-[70vh] min-h-48 object-contain rounded-lg bg-surface-container"
+                    onError={() => setReceiptPreviewError(true)}
+                  />
+                )
+              ) : (
+                <p className="font-sans text-body-sm text-on-surface-variant">
+                  No receipt file was saved for this transaction. Upload the receipt again to view it here.
+                </p>
+              )}
+            </div>
+
             {/* Basic Info */}
             <div className="editorial-card p-5 space-y-4">
               <h3 className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest">Basic Information</h3>

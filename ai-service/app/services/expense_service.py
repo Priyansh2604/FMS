@@ -5,7 +5,13 @@ import uuid
 
 from app.services.ocr_service import extract_text_from_file
 from app.services.llm_service import get_llm_provider
-from app.services.supabase_service import insert_expense, find_duplicate, upload_receipt, get_learned_categories
+from app.services.supabase_service import (
+    insert_expense,
+    find_duplicate,
+    upload_receipt,
+    create_receipt_signed_url,
+    get_learned_categories,
+)
 from app.schemas.expense import (
     ExpenseExtraction,
     ExpenseExtractionResult,
@@ -148,6 +154,7 @@ async def process_receipt(
         resolved_category = await resolve_category(extraction.category, extraction.subcategory)
 
         receipt_url = await upload_receipt(file_content, filename, user_id)
+        receipt_view_url = create_receipt_signed_url(receipt_url)
 
         duplicate = await find_duplicate(
             user_id=user_id,
@@ -211,7 +218,7 @@ async def process_receipt(
             ocr_text=inserted.get("ocr_text"),
             ai_confidence=inserted.get("ai_confidence"),
             ai_category_confidence=inserted.get("ai_category_confidence"),
-            receipt_url=inserted.get("receipt_url"),
+            receipt_url=receipt_view_url,
             gst_amount=inserted.get("gst_amount"),
             gst_percent=inserted.get("gst_percent"),
             cgst=inserted.get("cgst"),

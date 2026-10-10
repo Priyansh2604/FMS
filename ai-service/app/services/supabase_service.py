@@ -1,5 +1,7 @@
+import json
 import logging
 import uuid
+from urllib.parse import unquote, urlparse
 from supabase import create_client, Client
 
 from app.config import settings
@@ -31,7 +33,7 @@ MIME_TYPES = {
 }
 
 
-async def upload_receipt(file_content: bytes, filename: str, user_id: str) -> str | None:
+async def upload_receipt(file_content: bytes, filename: str, user_id: str) -> str:
     try:
         client = get_client()
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "bin"
@@ -42,8 +44,32 @@ async def upload_receipt(file_content: bytes, filename: str, user_id: str) -> st
         logger.info("Receipt uploaded to %s", path)
         return url
     except Exception as e:
-        logger.warning("Receipt upload failed (non-fatal): %s", e)
-        return None
+        logger.error("Receipt upload failed: %s", e)
+        raise RuntimeError("Could not save the receipt file. Please try uploading it again.") from e
+
+
+def create_receipt_signed_url(receipt_url: str, expires_in: int = 3600) -> str:
+    parsed_url = urlparse(receipt_url)
+    storage_path = ""
+    for access_type in ("public", "sign"):
+        marker = f"/object/{access_type}/{RECEIPT_BUCKET}/"
+        if marker in parsed_url.path:
+            storage_path = unquote(parsed_url.path.split(marker, 1)[1])
+            break
+
+    if not storage_path and not parsed_url.scheme:
+        storage_path = receipt_url.removeprefix(f"{RECEIPT_BUCKET}/").lstrip("/")
+
+    if not storage_path:
+        raise ValueError("Receipt URL does not point to the receipts storage bucket")
+
+    response = get_client().storage.from_(RECEIPT_BUCKET).create_signed_url(storage_path, expires_in)
+    signed_url = response.get("signedURL") or response.get("signedUrl")
+    if not signed_url:
+        raise RuntimeError("Supabase did not return a signed receipt URL")
+    if signed_url.startswith("/"):
+        return f"{settings.SUPABASE_URL.rstrip('/')}/storage/v1{signed_url}"
+    return signed_url
 
 
 async def insert_expense(expense: dict) -> dict:
@@ -78,7 +104,17 @@ async def get_user_expenses(
     query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
 
     result = query.execute()
-    return result.data or []
+    expenses = result.data or []
+    for expense in expenses:
+        if isinstance(expense.get("line_items"), str):
+            try:
+                parsed_items = json.loads(expense["line_items"])
+                expense["line_items"] = parsed_items if isinstance(parsed_items, list) else []
+            except (ValueError, TypeError):
+                expense["line_items"] = []
+        if expense.get("receipt_url"):
+            expense["receipt_url"] = create_receipt_signed_url(expense["receipt_url"])
+    return expenses
 
 
 async def count_user_expenses(user_id: str, category: str | None = None) -> int:

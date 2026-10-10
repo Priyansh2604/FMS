@@ -215,8 +215,8 @@ class LLMProvider:
         extraction = ExpenseExtraction(
             merchant=parsed.get("merchant"),
             amount=parsed.get("amount"),
-            currency=parsed.get("currency", "INR"),
-            category=parsed.get("category", "Other"),
+            currency=parsed.get("currency") or "INR",
+            category=parsed.get("category") or "Other",
             subcategory=parsed.get("subcategory"),
             description=parsed.get("description"),
             expense_date=parsed.get("expense_date"),
