@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { notifications as seedNotifications } from "../../data/mockData";
 import { toggleTheme } from "../../theme";
 import NotificationPanel from "./NotificationPanel";
@@ -7,12 +7,18 @@ import CalendarPanel from "./CalendarPanel";
 
 export default function Header({ onMenuToggle }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams] = useSearchParams();
   const [activePanel, setActivePanel] = useState(null);
   const [query, setQuery] = useState("");
   const [notifications, setNotifications] = useState(seedNotifications);
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+
+  useEffect(() => {
+    setQuery(location.pathname === "/dashboard/transactions" ? searchParams.get("q") || "" : "");
+  }, [location.pathname, searchParams]);
 
   const togglePanel = (panel) => {
     setActivePanel((cur) => (cur === panel ? null : panel));
@@ -27,7 +33,7 @@ export default function Header({ onMenuToggle }) {
     const q = query.trim();
     if (!q) return;
     setActivePanel(null);
-    navigate(`/transactions?q=${encodeURIComponent(q)}`);
+    navigate(`/dashboard/transactions?q=${encodeURIComponent(q)}`);
   };
 
   const handleNotificationRead = (id) => {
@@ -67,7 +73,7 @@ export default function Header({ onMenuToggle }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="bg-transparent border-none outline-none w-full text-sm placeholder:text-on-surface-variant/60 text-primary"
-              placeholder="Search transactions, insights, assets..."
+              placeholder="Search transactions..."
             />
           </form>
         </div>

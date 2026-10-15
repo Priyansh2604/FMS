@@ -102,7 +102,7 @@ export default function TransactionsPage() {
   const user = getCurrentUser();
   const userId = user?.id || "";
   const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q") || "";
 
   const [activeTab, setActiveTab] = useState("manual");
@@ -148,18 +148,45 @@ export default function TransactionsPage() {
     ? dynamicCategories.filter((c) => c.value === "Salary" || c.value === "Investment" || c.value === "Other")
     : INCOME_CATEGORIES;
 
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpenses = useCallback(async (signal) => {
     if (!userId) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ user_id: userId, page: String(page), limit: "20" });
-      if (filterCategory) params.append("category", filterCategory);
+      const loadAll = Boolean(searchQuery.trim() || filterCategory);
+      const expenseLimit = loadAll ? 100 : 20;
+      const params = new URLSearchParams({
+        user_id: userId,
+        page: String(loadAll ? 1 : page),
+        limit: String(expenseLimit),
+      });
       const [expenseRes, transactionRes] = await Promise.all([
-        fetch(`${apiBaseUrl}/api/expenses?${params}`),
-        fetch(`${apiBaseUrl}/api/transactions?user_id=${encodeURIComponent(userId)}`),
+        fetch(`${apiBaseUrl}/api/expenses?${params}`, { signal }),
+        fetch(`${apiBaseUrl}/api/transactions?user_id=${encodeURIComponent(userId)}`, { signal }),
       ]);
       const expenseData = await expenseRes.json();
       const transactionData = await transactionRes.json();
+      if (!expenseRes.ok) {
+        throw new Error(expenseData.detail || expenseData.error?.message || "Could not load expenses.");
+      }
+
+      let receiptData = expenseData.expenses || [];
+      if (loadAll && Number(expenseData.total) > expenseLimit) {
+        const pageCount = Math.ceil(Number(expenseData.total) / expenseLimit);
+        const remainingPages = await Promise.all(
+          Array.from({ length: pageCount - 1 }, async (_, index) => {
+            const nextParams = new URLSearchParams(params);
+            nextParams.set("page", String(index + 2));
+            const response = await fetch(`${apiBaseUrl}/api/expenses?${nextParams}`, { signal });
+            const data = await response.json();
+            if (!response.ok) {
+              throw new Error(data.detail || data.error?.message || "Could not load all matching expenses.");
+            }
+            return data.expenses || [];
+          })
+        );
+        receiptData = [...receiptData, ...remainingPages.flat()];
+      }
+
       const manualTransactions = Array.isArray(transactionData)
         ? transactionData.map((tx) => ({
             ...tx,
@@ -174,8 +201,8 @@ export default function TransactionsPage() {
             source: "manual",
           }));
       const storedTransactions = Array.isArray(transactionData) ? manualTransactions : getLocalTransactions(userId);
-      if (expenseData.success || storedTransactions.length > 0) {
-        const receiptExpenses = (expenseData.expenses || []).map((exp) => ({
+      if (expenseData.success || Array.isArray(expenseData.expenses) || storedTransactions.length > 0) {
+        const receiptExpenses = receiptData.map((exp) => ({
           ...exp,
           line_items: parseLineItems(exp.line_items),
         }));
@@ -185,21 +212,60 @@ export default function TransactionsPage() {
         setTotal((expenseData.total || 0) + storedTransactions.length);
       }
     } catch (err) {
-      console.error("Failed to fetch expenses:", err);
+      if (!signal.aborted) console.error("Failed to fetch expenses:", err);
     } finally {
-      setLoading(false);
+      if (!signal.aborted) setLoading(false);
     }
-  }, [userId, page, filterCategory, apiBaseUrl]);
+  }, [userId, page, filterCategory, apiBaseUrl, searchQuery]);
 
-  useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => fetchExpenses(controller.signal), searchQuery.trim() ? 300 : 0);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [fetchExpenses, searchQuery]);
 
-  const filteredExpenses = searchQuery
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
+  const hasActiveFilter = Boolean(searchQuery.trim() || filterCategory);
+  const filteredExpenses = hasActiveFilter
     ? expenses.filter((e) =>
-        [e.merchant, e.category, e.description].some((f) =>
-          (f || "").toLowerCase().includes(searchQuery.toLowerCase())
+        (!filterCategory || e.category === filterCategory) &&
+        [
+          e.merchant,
+          e.category,
+          e.description,
+          e.expense_date,
+          e.date,
+          e.amount,
+          e.source,
+          ...parseLineItems(e.line_items).flatMap((item) => [
+            item?.name,
+            item?.description,
+          ]),
+        ].some((field) =>
+          String(field ?? "").toLowerCase().includes(searchQuery.trim().toLowerCase())
         )
       )
     : expenses;
+  const displayedExpenses = hasActiveFilter
+    ? filteredExpenses.slice((page - 1) * 20, page * 20)
+    : filteredExpenses;
+  const resultCount = hasActiveFilter ? filteredExpenses.length : total;
+
+  const handleSearchChange = (value) => {
+    setPage(1);
+    setSearchParams((currentParams) => {
+      const nextParams = new URLSearchParams(currentParams);
+      if (value.trim()) nextParams.set("q", value);
+      else nextParams.delete("q");
+      return nextParams;
+    }, { replace: true });
+  };
 
   const openReceiptPreview = async (transaction) => {
     setViewDetailTransaction({ ...transaction, line_items: parseLineItems(transaction.line_items) });
@@ -407,7 +473,7 @@ export default function TransactionsPage() {
         <div>
           <p className="font-sans text-label-sm text-on-surface-variant uppercase tracking-widest mb-2">Ledger</p>
           <h2 className="font-display text-display text-primary tracking-tight">Expenses</h2>
-          {searchQuery && (
+          {searchQuery.trim() && (
             <p className="font-sans text-label-md text-on-surface-variant mt-2">
               {filteredExpenses.length} result{filteredExpenses.length === 1 ? "" : "s"} for{" "}
               <span className="text-primary font-semibold">"{searchQuery}"</span>
@@ -416,6 +482,18 @@ export default function TransactionsPage() {
         </div>
         <button onClick={openAddTransaction} className="btn btn-primary">Add Transaction</button>
       </div>
+
+      <label className="flex items-center gap-3 mb-6 max-w-xl bg-surface-container-high/60 rounded-lg px-4 py-3 border border-outline-variant/40 focus-within:border-primary/50 transition-colors">
+        <span className="material-symbols-outlined text-on-surface-variant text-[20px]">search</span>
+        <input
+          type="search"
+          value={searchQuery}
+          onChange={(event) => handleSearchChange(event.target.value)}
+          className="bg-transparent border-none outline-none w-full font-sans text-body-md text-primary placeholder:text-on-surface-variant/60"
+          placeholder="Search by merchant, category, amount, date..."
+          aria-label="Search transactions"
+        />
+      </label>
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-12">
@@ -456,7 +534,7 @@ export default function TransactionsPage() {
             <option key={c.value} value={c.value}>{c.label}</option>
           ))}
         </select>
-        <span className="font-sans text-label-sm text-on-surface-variant ml-auto">{total} total</span>
+        <span className="font-sans text-label-sm text-on-surface-variant ml-auto">{resultCount} total</span>
       </div>
 
       {/* Expense Table */}
@@ -475,12 +553,12 @@ export default function TransactionsPage() {
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="px-6 py-12 text-center font-sans text-on-surface-variant">Loading...</td></tr>
-            ) : filteredExpenses.length === 0 ? (
+            ) : displayedExpenses.length === 0 ? (
               <tr><td colSpan={6} className="px-6 py-12 text-center">
                 <span className="material-symbols-outlined text-[40px] text-outline block mb-3">receipt_long</span>
                 <p className="font-sans text-body-md text-on-surface-variant">No expenses yet. Upload a receipt to get started.</p>
               </td></tr>
-            ) : filteredExpenses.map((tx) => {
+            ) : displayedExpenses.map((tx) => {
               const conf = tx.ai_confidence;
               const badge = conf != null ? getConfidenceBadge(conf) : null;
               return (
@@ -559,11 +637,11 @@ export default function TransactionsPage() {
       </div>
 
       {/* Pagination */}
-      {total > 20 && (
+      {resultCount > 20 && (
         <div className="flex justify-center gap-4 mt-6">
           <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn btn-outline btn-sm disabled:opacity-40">Prev</button>
-          <span className="font-sans text-label-sm text-on-surface-variant self-center">Page {page} of {Math.ceil(total / 20)}</span>
-          <button disabled={page * 20 >= total} onClick={() => setPage((p) => p + 1)} className="btn btn-outline btn-sm disabled:opacity-40">Next</button>
+          <span className="font-sans text-label-sm text-on-surface-variant self-center">Page {page} of {Math.ceil(resultCount / 20)}</span>
+          <button disabled={page * 20 >= resultCount} onClick={() => setPage((p) => p + 1)} className="btn btn-outline btn-sm disabled:opacity-40">Next</button>
         </div>
       )}
 

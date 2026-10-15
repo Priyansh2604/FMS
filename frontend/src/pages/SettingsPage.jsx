@@ -181,19 +181,6 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Upgrade Plan Widget */}
-        <div className="editorial-card p-6 lg:p-8 bg-tertiary-fixed/10 border-tertiary-fixed/30 flex flex-col sm:flex-row sm:items-center gap-6 relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-64 h-64 bg-tertiary-fixed/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-          <div className="z-10 flex-1 min-w-0">
-            <h3 className="font-sans text-headline-sm text-primary">Security Settings</h3>
-            <p className="font-sans text-body-md text-on-surface-variant mt-2">
-              Configure multi-factor authentication and token security sessions.
-            </p>
-          </div>
-          <button className="z-10 btn btn-outline shrink-0">
-            Manage
-          </button>
-        </div>
       </div>
     </div>
   );

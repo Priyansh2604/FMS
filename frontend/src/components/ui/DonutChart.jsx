@@ -11,6 +11,10 @@ export default function DonutChart({ data = [], total = 0 }) {
     return result;
   });
 
+  // Conic gradient string
+  // Red: 0 to 45%
+  // Yellow: 45 to 75%
+  // Rose: 75 to 100%
   const gradientStyle = { background: `conic-gradient(${distribution.map((item) => `${item.colorClass} ${item.start}% ${item.end}%`).join(", ")})` };
 
   return (
