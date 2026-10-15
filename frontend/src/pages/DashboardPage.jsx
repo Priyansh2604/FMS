@@ -14,6 +14,7 @@ export default function DashboardPage() {
 
   const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [summaryError, setSummaryError] = useState("");
 
   useEffect(() => {
     if (!userId) {
@@ -21,20 +22,37 @@ export default function DashboardPage() {
       return;
     }
 
-    fetch(`${apiBaseUrl}/api/expenses/summary?user_id=${userId}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.success) setSummary(data);
+    let cancelled = false;
+    setLoading(true);
+    setSummaryError("");
+
+    fetch(`${apiBaseUrl}/api/expenses/summary?user_id=${encodeURIComponent(userId)}`)
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.detail || data.error?.message || "Could not load your financial summary.");
+        }
+        if (!cancelled) setSummary(data);
       })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+      .catch((error) => {
+        console.error("Failed to load financial summary:", error);
+        if (!cancelled) setSummaryError(error.message || "Could not load your financial summary.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [userId, apiBaseUrl]);
 
-  const totalSpent = summary?.total_spent || 0;
-  const totalExpenses = summary?.total_expenses || 0;
-  const totalReceipts = summary?.total_receipts || 0;
-  const categoryBreakdown = summary?.category_breakdown || [];
-  const recentTransactions = summary?.recent_transactions || [];
+  const totalSpent = summary?.total_spent ?? 0;
+  const totalExpenses = summary?.total_expenses ?? 0;
+  const totalReceipts = summary?.total_receipts ?? 0;
+  const totalManual = summary?.total_manual ?? 0;
+  const categoryBreakdown = summary?.category_breakdown ?? [];
+  const recentTransactions = summary?.recent_transactions ?? [];
 
   const topCategory = categoryBreakdown[0];
   const secondCategory = categoryBreakdown[1];
@@ -46,17 +64,38 @@ export default function DashboardPage() {
           <h1 className="font-display text-display-lg text-primary tracking-tight">
             Financial Overview
           </h1>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 border-t border-outline-variant/30 pt-8">
+          <p className="font-sans text-body-md text-on-surface-variant">
+            A snapshot of your spending, expenses, and recorded transactions.
+          </p>
+          {summaryError && (
+            <p role="alert" className="font-sans text-body-sm text-rose-700">
+              {summaryError}
+            </p>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 border-t border-outline-variant/30 pt-8">
             <StatCard label="Total Spent" value={formatCurrency(totalSpent)} />
-            <StatCard label="Total Expenses" value={String(totalExpenses)} isBordered />
+            <StatCard label="Total Expenses" value={String(totalExpenses)} />
             <StatCard
               label="Receipts Scanned"
               value={String(totalReceipts)}
               trend={totalReceipts > 0}
               showTrendUp={true}
-              isBordered
             />
+            <StatCard label="Manual Entries" value={String(totalManual)} />
           </div>
+          {!loading && !summaryError && totalExpenses === 0 && (
+            <div className="editorial-card p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="font-sans text-headline-sm text-primary font-semibold">No expenses recorded yet</h2>
+                <p className="font-sans text-body-sm text-on-surface-variant mt-1">
+                  Add a transaction or scan a receipt to see your financial summary here.
+                </p>
+              </div>
+              <button onClick={() => navigate("/dashboard/transactions")} className="btn btn-primary shrink-0">
+                Add a transaction
+              </button>
+            </div>
+          )}
         </section>
 
         {topCategory && (

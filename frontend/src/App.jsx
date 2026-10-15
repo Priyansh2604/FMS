@@ -13,6 +13,7 @@ import SignUpPage from "./pages/SignUpPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
 import { getCurrentUser, initializeAuth, subscribeToAuthChanges } from "./auth";
+import { refreshCurrencyRates } from "./utils/currencyRates";
 
 function RequireAuth({ ready }) {
   if (!ready) {
@@ -25,6 +26,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    refreshCurrencyRates();
     let mounted = true;
     initializeAuth().finally(() => {
       if (mounted) setAuthReady(true);

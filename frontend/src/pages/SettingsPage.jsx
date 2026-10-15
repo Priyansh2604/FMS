@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from "react";
 import { getCurrentUser, updateCurrentUserAvatar, updateCurrentUserCurrency, syncSessionFromHost } from "../auth";
 import { isDarkTheme, toggleTheme } from "../theme";
+import { CURRENCIES } from "../utils/currencyOptions";
+import { getCurrencyRateDate } from "../utils/currencyRates";
 
 const DEFAULT_AVATAR = "https://i.pravatar.cc/160?img=12";
 
@@ -16,8 +18,15 @@ export default function SettingsPage() {
   });
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [currency, setCurrency] = useState(user?.currency || "INR");
+  const [rateDate, setRateDate] = useState(getCurrencyRateDate);
   const [avatar, setAvatar] = useState(user?.avatar || DEFAULT_AVATAR);
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const handleRatesUpdated = (event) => setRateDate(event.detail?.date || getCurrencyRateDate());
+    window.addEventListener("aura:fx-updated", handleRatesUpdated);
+    return () => window.removeEventListener("aura:fx-updated", handleRatesUpdated);
+  }, []);
 
   useEffect(() => {
     // If there's no local session (e.g., running on a different port), try to sync from backend origin
@@ -105,7 +114,12 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <p className="font-sans text-body-lg text-primary font-medium">Default Currency</p>
-                <p className="font-sans text-body-md text-on-surface-variant mt-1">Select standard symbol presentation.</p>
+                <p className="font-sans text-body-md text-on-surface-variant mt-1">
+                  Rates are refreshed daily from{" "}
+                  <a href="https://frankfurter.dev/" target="_blank" rel="noreferrer" className="underline">Frankfurter</a>
+                  {" "}and may differ from your bank or card provider.
+                  {rateDate ? ` Rates as of ${rateDate}.` : " Showing the latest saved estimates until rates load."}
+                </p>
               </div>
                 <select
                 value={currency}
@@ -121,9 +135,9 @@ export default function SettingsPage() {
                 }}
                 className="bg-surface-container-lowest border border-outline-variant/50 rounded-lg px-4 py-2.5 font-sans text-body-md text-primary outline-none focus:border-primary shadow-sm min-w-[120px]"
               >
-                <option value="INR">INR (₹)</option>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
+                {CURRENCIES.map(({ code, label }) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
               </select>
             </div>
 

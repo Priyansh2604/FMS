@@ -131,29 +131,30 @@ async def get_expense_summary(user_id: str) -> dict:
 
     all_expenses = (
         client.table("expenses")
-        .select("amount, category, expense_date, source, created_at")
+        .select("amount, category, expense_date, source, created_at, merchant, description")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
     )
     expenses = all_expenses.data or []
+    expense_entries = [e for e in expenses if e.get("source") != "manual_income"]
 
-    total_spent = sum(float(e["amount"]) for e in expenses)
-    total_receipts = sum(1 for e in expenses if e.get("source") == "receipt")
-    total_manual = sum(1 for e in expenses if e.get("source") == "manual")
+    total_spent = sum(float(e["amount"]) for e in expense_entries)
+    total_receipts = sum(1 for e in expense_entries if e.get("source") == "receipt")
+    total_manual = sum(1 for e in expense_entries if e.get("source") == "manual")
 
     category_totals = {}
-    for e in expenses:
+    for e in expense_entries:
         cat = e.get("category", "Other")
         category_totals[cat] = category_totals.get(cat, 0) + float(e["amount"])
 
     sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
 
-    recent = expenses[:10]
+    recent = expense_entries[:10]
 
     return {
         "total_spent": round(total_spent, 2),
-        "total_expenses": len(expenses),
+        "total_expenses": len(expense_entries),
         "total_receipts": total_receipts,
         "total_manual": total_manual,
         "category_breakdown": [{"category": c, "amount": round(a, 2)} for c, a in sorted_categories],

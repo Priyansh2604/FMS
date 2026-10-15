@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { CURRENCIES } from "../utils/currencyOptions";
 import { Link, useNavigate } from "react-router-dom";
 import { registerUser, signInWithGoogle } from "../auth";
 import { useEffect } from "react";
@@ -184,9 +185,9 @@ export default function SignUpPage() {
                   onChange={update("currency")}
                   className="w-full bg-transparent border-b border-outline-variant focus:border-primary pl-8 py-2 font-sans text-body-md text-primary appearance-none outline-none"
                 >
-                  <option value="INR">INR (₹)</option>
-                  <option value="USD">USD ($)</option>
-                  <option value="EUR">EUR (€)</option>
+                  {CURRENCIES.map(({ code, label }) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
                 </select>
               </div>
             </div>

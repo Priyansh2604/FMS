@@ -126,14 +126,26 @@ router.get('/summary', async (req, res) => {
       .from('expenses').select('*').eq('user_id', userId);
     if (error) throw error;
 
-    const totalSpent = (expenses || []).reduce((s, e) => s + Number(e.amount || 0), 0);
-    const byCategory = {};
-    (expenses || []).forEach(e => {
-      const cat = e.category || 'Uncategorized';
-      byCategory[cat] = (byCategory[cat] || 0) + Number(e.amount || 0);
+    const expenseEntries = (expenses || []).filter((expense) => expense.source !== 'manual_income');
+    const totalSpent = expenseEntries.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    const categoryTotals = {};
+    expenseEntries.forEach((expense) => {
+      const category = expense.category || 'Other';
+      categoryTotals[category] = (categoryTotals[category] || 0) + Number(expense.amount || 0);
     });
+    const categoryBreakdown = Object.entries(categoryTotals)
+      .sort(([, amountA], [, amountB]) => amountB - amountA)
+      .map(([category, amount]) => ({ category, amount: Math.round(amount * 100) / 100 }));
 
-    res.json({ totalSpent, count: expenses?.length || 0, byCategory, expenses: expenses || [] });
+    res.json({
+      success: true,
+      total_spent: Math.round(totalSpent * 100) / 100,
+      total_expenses: expenseEntries.length,
+      total_receipts: expenseEntries.filter((expense) => expense.source === 'receipt').length,
+      total_manual: expenseEntries.filter((expense) => expense.source === 'manual').length,
+      category_breakdown: categoryBreakdown,
+      recent_transactions: expenseEntries.slice(0, 10),
+    });
   } catch (err) {
     console.error('[EXPENSES] Summary error:', err.message);
     res.status(500).json({ success: false, error: { code: 'SUMMARY_FAILED', message: err.message } });
