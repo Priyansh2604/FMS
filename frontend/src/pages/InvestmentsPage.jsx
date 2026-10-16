@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { getCurrentUser } from "../auth";
 import { formatCurrency } from "../utils/currency";
 
@@ -25,6 +26,8 @@ function saveLocalInvestment(userId, investment) {
 export default function InvestmentsPage() {
   const userId = getCurrentUser()?.id || "";
   const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  const [searchParams] = useSearchParams();
+  const searchQuery = (searchParams.get("q") || "").trim().toLowerCase();
   const [investments, setInvestments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
@@ -124,6 +127,12 @@ export default function InvestmentsPage() {
   const investedTotal = investments.reduce((sum, investment) => sum + Number(investment.invested_amount), 0);
   const currentTotal = investments.reduce((sum, investment) => sum + Number(investment.current_value), 0);
   const gain = currentTotal - investedTotal;
+  const filteredInvestments = searchQuery
+    ? investments.filter((investment) =>
+      [investment.name, investment.type, investment.notes, investment.purchase_date]
+        .some((value) => String(value || "").toLowerCase().includes(searchQuery))
+    )
+    : investments;
 
   return (
     <div className="px-6 lg:px-16 py-8 lg:py-12 max-w-[1280px] w-full mx-auto">
@@ -146,8 +155,10 @@ export default function InvestmentsPage() {
 
       {loading ? <p className="py-12 text-center font-sans text-on-surface-variant">Loading investments...</p> : investments.length === 0 ? (
         <div className="editorial-card p-12 text-center"><span className="material-symbols-outlined text-[48px] text-on-surface-variant">trending_up</span><h3 className="font-display text-headline-md text-primary mt-4">Your portfolio is empty</h3><p className="font-sans text-body-md text-on-surface-variant mt-2">Add your first investment to start tracking its value.</p></div>
+      ) : filteredInvestments.length === 0 ? (
+        <div className="editorial-card p-12 text-center"><span className="material-symbols-outlined text-[48px] text-on-surface-variant">search_off</span><h3 className="font-display text-headline-md text-primary mt-4">No matching investments</h3><p className="font-sans text-body-md text-on-surface-variant mt-2">Try a different investment name, type, note, or purchase date.</p></div>
       ) : (
-        <div className="editorial-card overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-outline-variant/30 font-sans text-label-sm text-on-surface-variant uppercase tracking-wider"><th className="px-6 py-4">Investment</th><th className="px-6 py-4">Type</th><th className="px-6 py-4">Purchased</th><th className="px-6 py-4 text-right">Invested</th><th className="px-6 py-4 text-right">Current Value</th><th className="px-6 py-4"></th></tr></thead><tbody>{investments.map((investment) => <tr key={investment.id} className="border-b border-outline-variant/20 font-sans text-body-md text-primary"><td className="px-6 py-4 font-medium">{investment.name}<span className="block text-label-sm text-on-surface-variant">{investment.quantity} units</span></td><td className="px-6 py-4">{investment.type}</td><td className="px-6 py-4 text-on-surface-variant">{investment.purchase_date}</td><td className="px-6 py-4 text-right">{formatCurrency(investment.invested_amount)}</td><td className="px-6 py-4 text-right font-medium">{formatCurrency(investment.current_value)}</td><td className="px-6 py-4 text-right"><button onClick={() => removeInvestment(investment.id)} className="text-label-sm text-rose-600 hover:underline">Delete</button></td></tr>)}</tbody></table></div>
+        <div className="editorial-card overflow-x-auto"><table className="w-full min-w-[720px] text-left"><thead><tr className="border-b border-outline-variant/30 font-sans text-label-sm text-on-surface-variant uppercase tracking-wider"><th className="px-6 py-4">Investment</th><th className="px-6 py-4">Type</th><th className="px-6 py-4">Purchased</th><th className="px-6 py-4 text-right">Invested</th><th className="px-6 py-4 text-right">Current Value</th><th className="px-6 py-4"></th></tr></thead><tbody>{filteredInvestments.map((investment) => <tr key={investment.id} className="border-b border-outline-variant/20 font-sans text-body-md text-primary"><td className="px-6 py-4 font-medium">{investment.name}<span className="block text-label-sm text-on-surface-variant">{investment.quantity} units</span></td><td className="px-6 py-4">{investment.type}</td><td className="px-6 py-4 text-on-surface-variant">{investment.purchase_date}</td><td className="px-6 py-4 text-right">{formatCurrency(investment.invested_amount)}</td><td className="px-6 py-4 text-right font-medium">{formatCurrency(investment.current_value)}</td><td className="px-6 py-4 text-right"><button onClick={() => removeInvestment(investment.id)} className="text-label-sm text-rose-600 hover:underline">Delete</button></td></tr>)}</tbody></table></div>
       )}
 
       {formOpen && <div className="fixed inset-0 z-40 bg-black/20" onClick={() => setFormOpen(false)} />}

@@ -15,10 +15,15 @@ export default function Header({ onMenuToggle }) {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+  const isInvestmentsPage = location.pathname === "/dashboard/invest";
 
   useEffect(() => {
-    setQuery(location.pathname === "/dashboard/transactions" ? searchParams.get("q") || "" : "");
-  }, [location.pathname, searchParams]);
+    setQuery(
+      location.pathname === "/dashboard/transactions" || isInvestmentsPage
+        ? searchParams.get("q") || ""
+        : ""
+    );
+  }, [isInvestmentsPage, location.pathname, searchParams]);
 
   const togglePanel = (panel) => {
     setActivePanel((cur) => (cur === panel ? null : panel));
@@ -33,7 +38,10 @@ export default function Header({ onMenuToggle }) {
     const q = query.trim();
     if (!q) return;
     setActivePanel(null);
-    navigate(`/dashboard/transactions?q=${encodeURIComponent(q)}`);
+    const searchPath = isInvestmentsPage
+      ? "/dashboard/invest"
+      : "/dashboard/transactions";
+    navigate(`${searchPath}?q=${encodeURIComponent(q)}`);
   };
 
   const handleNotificationRead = (id) => {
@@ -73,7 +81,7 @@ export default function Header({ onMenuToggle }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="bg-transparent border-none outline-none w-full text-sm placeholder:text-on-surface-variant/60 text-primary"
-              placeholder="Search transactions..."
+              placeholder={isInvestmentsPage ? "Search investments..." : "Search transactions..."}
             />
           </form>
         </div>
