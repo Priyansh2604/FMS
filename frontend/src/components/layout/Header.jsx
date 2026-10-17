@@ -15,6 +15,7 @@ export default function Header({ onMenuToggle }) {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
   const unreadCount = notifications.filter((n) => n.unread).length;
+  const isTransactionsPage = location.pathname === "/dashboard/transactions";
   const isInvestmentsPage = location.pathname === "/dashboard/invest";
 
   useEffect(() => {
@@ -71,19 +72,21 @@ export default function Header({ onMenuToggle }) {
           </h1>
 
           {/* Search bar — desktop only */}
-          <form
-            onSubmit={handleSearchSubmit}
-            className="hidden lg:flex items-center w-80 bg-surface-container-high/60 rounded-full px-4 py-2 border border-outline-variant/20 focus-within:border-primary/40 transition-colors"
-          >
-            <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[20px]">search</span>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-sm placeholder:text-on-surface-variant/60 text-primary"
-              placeholder={isInvestmentsPage ? "Search investments..." : "Search transactions..."}
-            />
-          </form>
+          {!isTransactionsPage && (
+            <form
+              onSubmit={handleSearchSubmit}
+              className="hidden lg:flex items-center w-80 bg-surface-container-high/60 rounded-full px-4 py-2 border border-outline-variant/20 focus-within:border-primary/40 transition-colors"
+            >
+              <span className="material-symbols-outlined text-on-surface-variant mr-2 text-[20px]">search</span>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="bg-transparent border-none outline-none w-full text-sm placeholder:text-on-surface-variant/60 text-primary"
+                placeholder={isInvestmentsPage ? "Search investments..." : "Search transactions..."}
+              />
+            </form>
+          )}
         </div>
 
         {/* Right: Actions */}
