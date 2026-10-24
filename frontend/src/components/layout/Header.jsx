@@ -15,14 +15,11 @@ export default function Header({ onMenuToggle }) {
   const [isDark, setIsDark] = useState(document.documentElement.classList.contains("dark"));
 
   const unreadCount = notifications.filter((n) => n.unread).length;
-  const isTransactionsPage = location.pathname === "/dashboard/transactions";
   const isInvestmentsPage = location.pathname === "/dashboard/invest";
 
   useEffect(() => {
     setQuery(
-      location.pathname === "/dashboard/transactions" || isInvestmentsPage
-        ? searchParams.get("q") || ""
-        : ""
+      isInvestmentsPage ? searchParams.get("q") || "" : ""
     );
   }, [isInvestmentsPage, location.pathname, searchParams]);
 
@@ -72,7 +69,7 @@ export default function Header({ onMenuToggle }) {
           </h1>
 
           {/* Search bar — desktop only */}
-          {!isTransactionsPage && (
+          {isInvestmentsPage && (
             <form
               onSubmit={handleSearchSubmit}
               className="hidden lg:flex items-center w-80 bg-surface-container-high/60 rounded-full px-4 py-2 border border-outline-variant/20 focus-within:border-primary/40 transition-colors"
