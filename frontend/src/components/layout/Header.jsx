@@ -64,7 +64,8 @@ export default function Header({ onMenuToggle }) {
             <span className="material-symbols-outlined text-2xl">menu</span>
           </button>
 
-          <h1 className="lg:hidden font-display text-xl font-semibold tracking-tight text-primary">
+          <h1 className="lg:hidden flex items-center gap-2 font-display text-xl font-semibold tracking-tight text-primary">
+            <img src="/aura-logo.png" alt="" className="w-8 h-8 rounded-full object-contain" />
             Aura Finance
           </h1>
 

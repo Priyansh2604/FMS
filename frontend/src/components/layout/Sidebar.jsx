@@ -34,10 +34,8 @@ export default function Sidebar({ onCloseMobile }) {
     <div className="flex flex-col h-full bg-surface py-6 px-4 justify-between select-none">
       <div>
         {/* Brand logo */}
-        <div className="mb-10 flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary shrink-0">
-            <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>eco</span>
-          </div>
+        <div className="mb-10 flex items-center gap-2 px-2">
+          <img src="/aura-logo.png" alt="" className="w-10 h-10 rounded-full object-contain shrink-0" />
           <span className="font-display font-bold text-headline-sm text-primary tracking-tight">Aura Finance</span>
         </div>
 
