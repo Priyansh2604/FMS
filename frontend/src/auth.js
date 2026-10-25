@@ -10,6 +10,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 const SESSION_KEY = 'aura_user';
 const DEFAULT_AVATAR = 'https://i.pravatar.cc/160?img=12';
 
+export function markAuthLoginComplete() {
+  window.dispatchEvent(new Event('aura:login-completed'));
+}
+
 const PendingStore = {
   set: (email) => {
     try { sessionStorage.setItem('aura_pending_email', email); } catch {}
@@ -104,6 +108,7 @@ export async function loginUser(email, password) {
 
   if (data.user) {
     setSession(data.user);
+    markAuthLoginComplete();
     return { ok: true, user: data.user };
   }
 
@@ -166,6 +171,7 @@ export async function verifySignupOtp(email, token) {
     
     setSession(data.user);
     PendingStore.clear();
+    markAuthLoginComplete();
     return { ok: true, user: data.user };
   }
 
@@ -287,7 +293,7 @@ export function subscribeToAuthChanges(onChange) {
     } else {
       clearSession();
     }
-    onChange(session);
+    onChange(event, session);
   });
 
   return () => subscription.unsubscribe();

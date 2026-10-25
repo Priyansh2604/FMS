@@ -12,50 +12,77 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import VerifyOtpPage from "./pages/VerifyOtpPage";
 import AuthCallbackPage from "./pages/AuthCallbackPage";
-import { getCurrentUser, initializeAuth, subscribeToAuthChanges } from "./auth";
+import { initializeAuth, subscribeToAuthChanges } from "./auth";
 import { refreshCurrencyRates } from "./utils/currencyRates";
 
-function RequireAuth({ ready }) {
+function RequireAuth({ ready, authenticated }) {
   if (!ready) {
     return <div className="min-h-screen bg-primary flex items-center justify-center text-on-primary font-sans">Checking your session...</div>;
   }
-  return getCurrentUser() ? <Outlet /> : <Navigate to="/login" replace />;
+  return authenticated ? <Outlet /> : <Navigate to="/login" replace />;
+}
+
+function RedirectAuthenticatedUser({ authenticated, children }) {
+  return authenticated ? <Navigate to="/dashboard" replace /> : children;
 }
 
 export default function App() {
   const [authReady, setAuthReady] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     refreshCurrencyRates();
     let mounted = true;
-    initializeAuth().finally(() => {
-      if (mounted) setAuthReady(true);
+    let authDecisionMade = false;
+
+    initializeAuth().then(() => {
+      if (mounted && !authDecisionMade) {
+        setAuthenticated(false);
+        setAuthReady(true);
+      }
+    }).catch((error) => {
+      console.error("Unable to initialize authentication:", error);
+      if (mounted && !authDecisionMade) {
+        setAuthenticated(false);
+        setAuthReady(true);
+      }
     });
 
-    const unsubscribe = subscribeToAuthChanges(() => {
-      if (mounted) setAuthReady(true);
+    const handleLoginComplete = () => {
+      authDecisionMade = true;
+      if (mounted) {
+        setAuthenticated(true);
+        setAuthReady(true);
+      }
+    };
+    const unsubscribe = subscribeToAuthChanges((event) => {
+      if (event === "SIGNED_OUT") {
+        authDecisionMade = true;
+        if (mounted) {
+          setAuthenticated(false);
+          setAuthReady(true);
+        }
+      }
     });
-    const handler = () => setAuthReady(true);
-    window.addEventListener('aura:session-changed', handler);
-    window.addEventListener('aura:fx-updated', handler);
+    window.addEventListener("aura:login-completed", handleLoginComplete);
+
     return () => {
       mounted = false;
       unsubscribe();
-      window.removeEventListener('aura:session-changed', handler);
-      window.removeEventListener('aura:fx-updated', handler);
+      window.removeEventListener("aura:login-completed", handleLoginComplete);
     };
   }, []);
 
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<RedirectAuthenticatedUser authenticated={authenticated}><LoginPage /></RedirectAuthenticatedUser>} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path="/verify" element={<VerifyOtpPage />} />
         <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route index element={<Navigate to="/login" replace />} />
 
-        <Route path="/dashboard" element={<RequireAuth ready={authReady} />}>
+        <Route path="/dashboard" element={<RequireAuth ready={authReady} authenticated={authenticated} />}>
           <Route element={<AppLayout />}>
             <Route index element={<DashboardPage />} />
             <Route path="transactions" element={<TransactionsPage />} />

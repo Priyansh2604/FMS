@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { supabase, initializeAuth, getCurrentUser } from "../auth";
+import { supabase, initializeAuth, markAuthLoginComplete } from "../auth";
 
 export default function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -27,8 +27,9 @@ export default function AuthCallbackPage() {
         }
       }
 
-      await initializeAuth();
-      if (getCurrentUser()) {
+      const session = await initializeAuth();
+      if (session?.user) {
+        markAuthLoginComplete();
         navigate("/dashboard", { replace: true });
       } else {
         navigate("/login", { replace: true });
