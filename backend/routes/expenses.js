@@ -21,6 +21,12 @@ function getUserId(req) {
   return req.query.user_id || req.body?.user_id || '';
 }
 
+function isMissingTransactionsTable(error) {
+  return error?.code === 'PGRST205'
+    || error?.code === '42P01'
+    || /could not find the table .*transactions|relation .*transactions.* does not exist/i.test(error?.message || '');
+}
+
 router.post('/process', upload.single('file'), async (req, res) => {
   try {
     const userId = getUserId(req);
@@ -127,9 +133,30 @@ router.get('/summary', async (req, res) => {
     if (error) throw error;
 
     const expenseEntries = (expenses || []).filter((expense) => expense.source !== 'manual_income');
-    const totalSpent = expenseEntries.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
+    let transactions = [];
+    const transactionResult = await supabase
+      .from('transactions').select('*').eq('user_id', userId);
+    if (transactionResult.error) {
+      if (!isMissingTransactionsTable(transactionResult.error)) throw transactionResult.error;
+    } else {
+      transactions = transactionResult.data || [];
+    }
+
+    const manualExpenses = transactions
+      .filter((transaction) => transaction.type !== 'income')
+      .map((transaction) => ({
+        ...transaction,
+        amount: Number(transaction.amount || 0),
+        expense_date: transaction.date,
+        source: 'manual',
+      }));
+    const allExpenses = [...expenseEntries, ...manualExpenses].sort((a, b) =>
+      new Date(b.created_at || b.expense_date || b.date).getTime()
+      - new Date(a.created_at || a.expense_date || a.date).getTime()
+    );
+    const totalSpent = allExpenses.reduce((sum, expense) => sum + Number(expense.amount || 0), 0);
     const categoryTotals = {};
-    expenseEntries.forEach((expense) => {
+    allExpenses.forEach((expense) => {
       const category = expense.category || 'Other';
       categoryTotals[category] = (categoryTotals[category] || 0) + Number(expense.amount || 0);
     });
@@ -140,11 +167,11 @@ router.get('/summary', async (req, res) => {
     res.json({
       success: true,
       total_spent: Math.round(totalSpent * 100) / 100,
-      total_expenses: expenseEntries.length,
+      total_expenses: allExpenses.length,
       total_receipts: expenseEntries.filter((expense) => expense.source === 'receipt').length,
-      total_manual: expenseEntries.filter((expense) => expense.source === 'manual').length,
+      total_manual: allExpenses.filter((expense) => expense.source === 'manual').length,
       category_breakdown: categoryBreakdown,
-      recent_transactions: expenseEntries.slice(0, 10),
+      recent_transactions: allExpenses.slice(0, 10),
     });
   } catch (err) {
     console.error('[EXPENSES] Summary error:', err.message);

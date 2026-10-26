@@ -131,7 +131,7 @@ async def get_expense_summary(user_id: str) -> dict:
 
     all_expenses = (
         client.table("expenses")
-        .select("amount, category, expense_date, source, created_at, merchant, description")
+        .select("id, amount, category, expense_date, source, created_at, merchant, description")
         .eq("user_id", user_id)
         .order("created_at", desc=True)
         .execute()
@@ -139,22 +139,61 @@ async def get_expense_summary(user_id: str) -> dict:
     expenses = all_expenses.data or []
     expense_entries = [e for e in expenses if e.get("source") != "manual_income"]
 
-    total_spent = sum(float(e["amount"]) for e in expense_entries)
+    try:
+        transaction_result = (
+            client.table("transactions")
+            .select("id, merchant, type, amount, category, date, notes, created_at")
+            .eq("user_id", user_id)
+            .execute()
+        )
+    except Exception as exc:
+        error_code = getattr(exc, "code", None)
+        error_message = str(exc)
+        if error_code not in {"PGRST205", "42P01"} and not (
+            "transactions" in error_message.lower()
+            and (
+                "could not find the table" in error_message.lower()
+                or "does not exist" in error_message.lower()
+            )
+        ):
+            raise
+        logger.warning("Transactions table is unavailable; summary uses expenses only")
+        transactions = []
+    else:
+        transactions = transaction_result.data or []
+
+    manual_expenses = [
+        {
+            **transaction,
+            "amount": float(transaction.get("amount") or 0),
+            "expense_date": transaction.get("date"),
+            "source": "manual",
+        }
+        for transaction in transactions
+        if transaction.get("type") != "income"
+    ]
+    all_expenses = sorted(
+        [*expense_entries, *manual_expenses],
+        key=lambda expense: expense.get("created_at") or expense.get("expense_date") or "",
+        reverse=True,
+    )
+
+    total_spent = sum(float(e.get("amount") or 0) for e in all_expenses)
     total_receipts = sum(1 for e in expense_entries if e.get("source") == "receipt")
-    total_manual = sum(1 for e in expense_entries if e.get("source") == "manual")
+    total_manual = sum(1 for e in all_expenses if e.get("source") == "manual")
 
     category_totals = {}
-    for e in expense_entries:
+    for e in all_expenses:
         cat = e.get("category", "Other")
-        category_totals[cat] = category_totals.get(cat, 0) + float(e["amount"])
+        category_totals[cat] = category_totals.get(cat, 0) + float(e.get("amount") or 0)
 
     sorted_categories = sorted(category_totals.items(), key=lambda x: x[1], reverse=True)
 
-    recent = expense_entries[:10]
+    recent = all_expenses[:10]
 
     return {
         "total_spent": round(total_spent, 2),
-        "total_expenses": len(expense_entries),
+        "total_expenses": len(all_expenses),
         "total_receipts": total_receipts,
         "total_manual": total_manual,
         "category_breakdown": [{"category": c, "amount": round(a, 2)} for c, a in sorted_categories],
