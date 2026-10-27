@@ -98,6 +98,28 @@ function updateLocalTransaction(userId, transaction) {
   return transactions;
 }
 
+function pinnedTransactionsKey(userId) {
+  return `aura_pinned_transactions_${userId}`;
+}
+
+function getPinnedTransactions(userId) {
+  try {
+    const pinned = JSON.parse(localStorage.getItem(pinnedTransactionsKey(userId)) || "[]");
+    return Array.isArray(pinned) ? pinned.map(String) : [];
+  } catch {
+    return [];
+  }
+}
+
+function sortTransactions(transactions, pinnedIds) {
+  return [...transactions].sort((a, b) => {
+    const aPinned = pinnedIds.includes(String(a.id));
+    const bPinned = pinnedIds.includes(String(b.id));
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return new Date(b.created_at || b.expense_date || b.date) - new Date(a.created_at || a.expense_date || a.date);
+  });
+}
+
 export default function TransactionsPage() {
   const user = getCurrentUser();
   const userId = user?.id || "";
@@ -112,6 +134,7 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [filterCategory, setFilterCategory] = useState("");
+  const [pinnedIds, setPinnedIds] = useState(() => getPinnedTransactions(userId));
 
   const [merchantName, setMerchantName] = useState("");
   const [amount, setAmount] = useState("");
@@ -152,7 +175,7 @@ export default function TransactionsPage() {
     if (!userId) return;
     setLoading(true);
     try {
-      const loadAll = Boolean(searchQuery.trim() || filterCategory);
+      const loadAll = Boolean(searchQuery.trim() || filterCategory || pinnedIds.length > 0);
       const expenseLimit = loadAll ? 100 : 20;
       const params = new URLSearchParams({
         user_id: userId,
@@ -206,9 +229,7 @@ export default function TransactionsPage() {
           ...exp,
           line_items: parseLineItems(exp.line_items),
         }));
-        setExpenses([...manualTransactions, ...receiptExpenses].sort((a, b) =>
-          new Date(b.created_at || b.expense_date || b.date) - new Date(a.created_at || a.expense_date || a.date)
-        ));
+        setExpenses(sortTransactions([...manualTransactions, ...receiptExpenses], getPinnedTransactions(userId)));
         setTotal((expenseData.total || 0) + storedTransactions.length);
       }
     } catch (err) {
@@ -216,7 +237,7 @@ export default function TransactionsPage() {
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [userId, page, filterCategory, apiBaseUrl, searchQuery]);
+  }, [userId, page, filterCategory, apiBaseUrl, searchQuery, pinnedIds]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -232,6 +253,22 @@ export default function TransactionsPage() {
   }, [searchQuery]);
 
   const hasActiveFilter = Boolean(searchQuery.trim() || filterCategory);
+  const handleTogglePinned = (transaction) => {
+    const id = String(transaction.id);
+    const nextPinnedIds = pinnedIds.includes(id)
+      ? pinnedIds.filter((pinnedId) => pinnedId !== id)
+      : [...pinnedIds, id];
+
+    try {
+      localStorage.setItem(pinnedTransactionsKey(userId), JSON.stringify(nextPinnedIds));
+      setPinnedIds(nextPinnedIds);
+      setExpenses((current) => sortTransactions(current, nextPinnedIds));
+      setPage(1);
+      setUploadError("");
+    } catch (error) {
+      setUploadError(error.message || "Could not update pinned transactions.");
+    }
+  };
   const filteredExpenses = hasActiveFilter
     ? expenses.filter((e) =>
         (!filterCategory || e.category === filterCategory) &&
@@ -254,6 +291,8 @@ export default function TransactionsPage() {
     : expenses;
   const displayedExpenses = hasActiveFilter
     ? filteredExpenses.slice((page - 1) * 20, page * 20)
+    : pinnedIds.length > 0
+      ? filteredExpenses.slice((page - 1) * 20, page * 20)
     : filteredExpenses;
   const resultCount = hasActiveFilter ? filteredExpenses.length : total;
 
@@ -411,7 +450,7 @@ export default function TransactionsPage() {
       const data = await res.json();
       if (data.success && data.expense) {
         setUploadResult(data.expense);
-        setExpenses((prev) => [data.expense, ...prev]);
+        setExpenses((prev) => sortTransactions([data.expense, ...prev], pinnedIds));
         setUploadFile(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         fetchCategories().then((d) => { if (d?.categories) setDynamicCategories(d.categories); }).catch(() => {});
@@ -450,6 +489,15 @@ export default function TransactionsPage() {
       }
 
       setExpenses((current) => current.filter((item) => item.id !== transaction.id));
+      if (pinnedIds.includes(String(transaction.id))) {
+        const nextPinnedIds = pinnedIds.filter((id) => id !== String(transaction.id));
+        setPinnedIds(nextPinnedIds);
+        try {
+          localStorage.setItem(pinnedTransactionsKey(userId), JSON.stringify(nextPinnedIds));
+        } catch (error) {
+          setUploadError(error.message || "Could not update pinned transactions.");
+        }
+      }
       setTotal((current) => Math.max(0, current - 1));
     } catch (error) {
       setUploadError(error.message || "Could not delete transaction");
@@ -606,6 +654,16 @@ export default function TransactionsPage() {
                           <span className="material-symbols-outlined text-[20px]">visibility</span>
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={() => handleTogglePinned(tx)}
+                        className={`btn btn-icon btn-ghost ${pinnedIds.includes(String(tx.id)) ? "text-amber-500 hover:bg-amber-50" : "text-on-surface-variant hover:bg-surface-variant"}`}
+                        title={pinnedIds.includes(String(tx.id)) ? "Unpin transaction" : "Pin transaction to top"}
+                        aria-label={`${pinnedIds.includes(String(tx.id)) ? "Unpin" : "Pin"} ${tx.merchant || "transaction"} ${pinnedIds.includes(String(tx.id)) ? "from" : "to"} the top`}
+                        aria-pressed={pinnedIds.includes(String(tx.id))}
+                      >
+                        <span className="material-symbols-outlined text-[20px]">{pinnedIds.includes(String(tx.id)) ? "star" : "star_outline"}</span>
+                      </button>
                       {tx.source === "manual" && (
                         <button
                           type="button"
